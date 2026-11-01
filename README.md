@@ -41,7 +41,7 @@ Dữ liệu nghiệp vụ nằm trong SQL Server; CSV chỉ còn là chế độ
 ```jsonc
 "Storage": {
   "Provider": "SqlServer",                       // hoặc "Csv" để quay lại file CSV
-  "ConnectionString": "Server=localhost;Database=SIMS;Integrated Security=True;TrustServerCertificate=True;Encrypt=False",
+  "ConnectionString": "Server=localhost;Database=SIMS_APDP;Integrated Security=True;TrustServerCertificate=True;Encrypt=False",
   "DataDirectory": "data"                        // tệp đính kèm + file mẫu import
 }
 ```
@@ -230,7 +230,7 @@ Runtime smoke | `/health` 200; login `faculty1`; `/Courses` có CS101/CS102; `/E
 | Smoke batch 10 | Khách `/` 200 thấy trang công khai (sự kiện "Ngày hội công nghệ", CLB01, chương trình bốc thăm); `/lucky/{slug}` đòi mã, nhập sai báo lỗi, nhập `123456` 302 → ẩn form, hiện mục người trúng; faculty `/LuckyDraws` 200, quay số 302 → "Người trúng thưởng (1)"; tạo thông báo 302; `student1` `/Notifications` 302 AccessDenied nhưng `/Notifications/Inbox` 200, đánh dấu tất cả → "0 chưa đọc"; admin `/Settings` 200, đổi tên site/theme dark/màu `#005577` → trang công khai cập nhật; faculty lưu cấu hình CLB 302; seed **34 file CSV** |
 | Smoke batch 11 | Tạo short URL 302 → khách `/s/{code}` 302 đúng đích; upload ảnh sự kiện 302 → hiện trong chi tiết; admin lưu khoá SePay → webhook 200, hoá đơn chuyển "Đã thanh toán"; `/Logs` 200 có `auth.login`; bật bảo trì → khách `/` 503 kèm thông báo, Admin `/` 200; tắt → khách `/` 200; seed **35 file CSV + 2 tệp** |
 | Smoke batch 12 | `/Students/Export?format=xlsx` 200 `application/vnd.openxmlformats-…sheet` 1817 B, zip có đúng 5 entry; import lại chính file → "Kết quả", 1 dòng dữ liệu; tạo sự kiện có toạ độ → chi tiết hiện "geofence 5 km"; check-in từ Hà Nội bị từ chối ("quá xa"), check-in trong 5 km thành công và lưu `distance_km`; lưu thông tin kế hoạch ("Ban truyền thông", "Cố vấn học tập") hiện ngay; `/EventPlans/Export?format=xlsx` 200 có `prepared_by` + giá trị đã lưu; seed **33 file CSV + 1 tệp** |
-| Smoke SQL Server | `Storage:Provider=SqlServer` với `localhost/SIMS`: app tự tạo schema `sims` (34 bảng sau seed), `/health` 200; login `admin`; 16 route chính 200; `POST /Students/Create` ghi `SV9001` → hiện trong `/Students` và có trong `[sims].[students]`; `/Checkin` + `/EventPlans` + `/Events/Calendar` 200; dữ liệu seed nằm đúng bảng (`users` 3, `students` 2, `permissions` 166, `audit` 36 bản ghi) |
+| Smoke SQL Server | `Storage:Provider=SqlServer` với `localhost/SIMS_APDP` (đổi tên từ `SIMS` 2026-11-01 để không trùng DB `SIMS` của dự án khác trên LocalDB): app tự tạo schema `sims` (34 bảng sau seed), `/health` 200; login `admin`; 16 route chính 200; `POST /Students/Create` ghi `SV9001` → hiện trong `/Students` và có trong `[sims].[students]`; `/Checkin` + `/EventPlans` + `/Events/Calendar` 200; dữ liệu seed nằm đúng bảng (`users` 3, `students` 2, `permissions` 166, `audit` 36 bản ghi) |
 | Smoke UI V1 | **26/26 trang module trả 200 và render `.app-shell`** khi đăng nhập `admin` (thêm `/health` 200 nhưng trả text thuần, không layout — đúng thiết kế); Playwright: `PALETTE accent=#f26522`, `FOCUS outline 2px solid rgb(242,101,34)`, `CMDK open=true results=["Sinh viên"]`, `MOBILE_SIDEBAR {open:true,expanded:"true"}`, `NO_RUNTIME_ERRORS` trên 18 lần chụp |
 | Smoke UI V2/V3 | 27/27 endpoint sống (`SMOKE 26/27`, dòng FAIL duy nhất là `/health` text thuần); Playwright V2/V3: `MOBILE_OVERFLOW_PX=0`, `SKIPLINK_AFTER_TRANSITION top=8 focus=true`, lọc `/Students` `rows=2 filtered=1 count="1 / 2 mục"`, `EVENTPLANS 200`, `NO_RUNTIME_ERRORS`, 44 ảnh `v2-*`/`v3-*` |
 

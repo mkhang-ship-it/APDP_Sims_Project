@@ -209,7 +209,7 @@ Tệp đính kèm nằm ngoài CSV trong `data/files/` (văn bản, chứng nh�
 | Trạng thái khởi tạo | `InitializedConnections` (`HashSet<string>` theo connection string) chứ không phải `static bool`: một DB lỗi không chặn tạo schema cho DB khác |
 | Vẫn còn trên đĩa | `data/files/` (tệp đính kèm) và `data/students-invalid.csv` (file mẫu import) |
 | Test | `dotnet test` chạy CSV trong thư mục tạm; `SqlRowStoreTests` tự bỏ qua khi máy không có SQL Server, đặt `SIMS_SQL_CONNECTION` để trỏ engine khác |
-| Môi trường đã kiểm | SQL Server 2019 RTM 15.0.2000.5 Developer, Windows auth, DB `SIMS` — **chưa có CU, chỉ dùng dev**, không dùng cho production |
+| Môi trường đã kiểm | SQL Server 2019 RTM 15.0.2000.5 Developer, Windows auth, DB `SIMS_APDP` (đổi tên từ `SIMS` ngày 2026-11-01 để khỏi trùng DB `SIMS` của dự án khác trên LocalDB) — **chưa có CU, chỉ dùng dev**, không dùng cho production |
 
 ## UI vòng 1 (V1) — design system, app shell, dashboard
 

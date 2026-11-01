@@ -65,7 +65,7 @@ vong lap: 10, that bai: 0
 # Smoke thật trên SQL Server (engine chính)
 
 App chạy `dotnet run --project src/SIMS.Web --urls http://localhost:5199`, `Storage:Provider=SqlServer`
-(DB `SIMS`, Windows auth), đăng nhập `admin/Admin@12345`.
+(DB `SIMS_APDP`, Windows auth), đăng nhập `admin/Admin@12345`.
 
 ```
 health 200
@@ -108,7 +108,7 @@ IX_probe_index_RowOrd unique=1
 ```
 
 Ngày chạy: 2026-11-01 (giờ máy). Công cụ: .NET SDK 8, xUnit 2.5.3, SQL Server 2019
-15.0.2000.5 (Developer, Windows auth, DB `SIMS`).
+15.0.2000.5 (Developer, Windows auth, DB `SIMS_APDP`).
 
 # UI vòng 1 (V1) — token + app shell + dashboard + light/dark
 

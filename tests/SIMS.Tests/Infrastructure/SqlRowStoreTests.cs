@@ -10,7 +10,7 @@ namespace SIMS.Tests.Infrastructure;
 public sealed class SqlRowStoreTests
 {
     private const string DefaultConnection =
-        "Server=localhost;Database=SIMS;Integrated Security=True;TrustServerCertificate=True;Encrypt=False";
+        "Server=localhost;Database=SIMS_APDP;Integrated Security=True;TrustServerCertificate=True;Encrypt=False";
 
     private static string ConnectionString
         => Environment.GetEnvironmentVariable("SIMS_SQL_CONNECTION") ?? DefaultConnection;
