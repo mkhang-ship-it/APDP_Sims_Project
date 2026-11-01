@@ -1,0 +1,53 @@
+@model SIMS.Domain.Students.Student
+@{
+    ViewData["Title"] = "Xoá sinh viên";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Sinh viên</span>
+        <h1>Xoá sinh viên</h1>
+        <p class="page-head__sub">Thao tác không thể hoàn tác.</p>
+    </div>
+</header>
+
+<div class="alert alert-warning" role="alert">
+    <p class="alert__title">Xác nhận xoá hồ sơ</p>
+    Sinh viên dưới đây sẽ bị xoá khỏi hệ thống. Đăng ký học phần và điểm liên quan cần được xử lý riêng.
+</div>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">@Model.FullName</h2>
+            <p class="section__sub"><code>@Model.StudentCode</code></p>
+        </div>
+    </div>
+    <div class="section__body">
+        <dl class="detail-list">
+            <div>
+                <dt>MSSV</dt>
+                <dd><code>@Model.StudentCode</code></dd>
+            </div>
+            <div>
+                <dt>Chương trình</dt>
+                <dd>@Model.Program</dd>
+            </div>
+            <div>
+                <dt>Email</dt>
+                <dd>@Model.Email</dd>
+            </div>
+            <div>
+                <dt>Ngày sinh</dt>
+                <dd>@Model.DateOfBirth.ToString("dd/MM/yyyy")</dd>
+            </div>
+        </dl>
+    </div>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-danger">Xoá vĩnh viễn</button>
+        </div>
+    </form>
+</section>

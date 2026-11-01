@@ -1,0 +1,159 @@
+@model SIMS.Web.Models.AwardPageModel
+@using SIMS.Domain.Awards
+@{
+    ViewData["Title"] = "Khen thưởng";
+    var clubs = ViewData["Clubs"] as IReadOnlyList<SIMS.Web.Models.ClubOption> ?? Array.Empty<SIMS.Web.Models.ClubOption>();
+    var selectedClubId = (Guid)(ViewData["SelectedClubId"] ?? Guid.Empty);
+    var isAdmin = (bool)(ViewData["IsAdmin"] ?? false);
+
+    string StatusLabel(AwardStatus status) => status switch
+    {
+        AwardStatus.Awarded => "Đã trao",
+        AwardStatus.Revoked => "Thu hồi",
+        _ => "Chờ trao",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Khen thưởng</h1>
+        <p class="page-head__sub">Danh sách giải thưởng và người nhận theo câu lạc bộ.</p>
+    </div>
+</header>
+
+@if (isAdmin && clubs.Count > 1)
+{
+    <form method="get" asp-action="Index" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label mb-0" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in clubs)
+                    {
+                        if (club.Id == selectedClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Tạo giải thưởng</h2>
+            <p class="section__sub">Thêm giải thưởng mới cho câu lạc bộ đang chọn.</p>
+        </div>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="clubId" value="@selectedClubId" />
+        <div class="section__body">
+            <div class="form-grid form-grid--3">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="award-title">Tên giải thưởng <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="award-title" name="Title" placeholder="VD: Thành viên xuất sắc học kỳ" required maxlength="255" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="award-period">Kỳ</label>
+                    <input class="form-control" id="award-period" name="Period" placeholder="Kỳ" value="HK1 2026-2027" maxlength="40" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="award-date">Ngày trao <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="award-date" name="AwardDate" type="date" required
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="award-status">Trạng thái</label>
+                    <select class="form-select" id="award-status" name="Status">
+                        <option value="@AwardStatus.Pending">Chờ trao</option>
+                        <option value="@AwardStatus.Awarded">Đã trao</option>
+                    </select>
+                </div>
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="award-notes">Ghi chú</label>
+                    <input class="form-control" id="award-notes" name="Notes" placeholder="Ghi chú" maxlength="1000" />
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Tạo giải thưởng</button>
+        </div>
+    </form>
+</section>
+
+<section class="section" data-table data-page-size="10">
+    @if (Model.Items.Count > 0)
+    {
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo mã, tên, kỳ…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Mã</th>
+                        <th scope="col" data-sort>Tên</th>
+                        <th scope="col" data-sort>Kỳ</th>
+                        <th scope="col" data-sort>Ngày trao</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-num" data-sort>Người nhận</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td><code>@item.Award.Code</code></td>
+                            <td class="fw-medium">@item.Award.Title</td>
+                            <td>@item.Award.Period</td>
+                            <td class="col-num" data-value="@item.Award.AwardDate.ToString("yyyy-MM-dd")">
+                                @item.Award.AwardDate.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                @switch (item.Award.Status)
+                                {
+                                    case AwardStatus.Awarded:
+                                        <span class="badge badge--ok badge--dot">@StatusLabel(item.Award.Status)</span>
+                                        break;
+                                    case AwardStatus.Revoked:
+                                        <span class="badge badge--neutral badge--dot">@StatusLabel(item.Award.Status)</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge--warn badge--dot">@StatusLabel(item.Award.Status)</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="col-num">@item.Recipients.Count</td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Details"
+                                   asp-route-id="@item.Award.Id">Chi tiết</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    }
+    else
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có giải thưởng",
+                     Text = "Dùng biểu mẫu phía trên để tạo giải thưởng đầu tiên."
+                 })" />
+    }
+</section>

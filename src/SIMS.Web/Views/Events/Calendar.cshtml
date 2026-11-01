@@ -1,0 +1,95 @@
+@model IReadOnlyList<SIMS.Domain.Events.Event>
+@{
+    ViewData["Title"] = "Lịch sự kiện";
+    var year = (int)(ViewData["Year"] ?? DateTime.Today.Year);
+    var month = (int)(ViewData["Month"] ?? DateTime.Today.Month);
+    var first = new DateTime(year, month, 1);
+    var prev = first.AddMonths(-1);
+    var next = first.AddMonths(1);
+    var groups = Model
+        .GroupBy(e => e.StartsAtUtc.ToLocalTime().Date)
+        .OrderBy(g => g.Key);
+
+    string StatusLabel(SIMS.Domain.Events.EventStatus status) => status switch
+    {
+        SIMS.Domain.Events.EventStatus.Draft => "Nháp",
+        SIMS.Domain.Events.EventStatus.Published => "Đã công bố",
+        SIMS.Domain.Events.EventStatus.Completed => "Hoàn thành",
+        _ => "Đã huỷ",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ / Sự kiện</span>
+        <h1>Lịch tháng @month/@year</h1>
+        <p class="page-head__sub">@Model.Count sự kiện trong tháng</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Calendar" asp-route-year="@prev.Year" asp-route-month="@prev.Month">‹ Tháng trước</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Calendar" asp-route-year="@next.Year" asp-route-month="@next.Month">Tháng sau ›</a>
+        <a class="btn btn-primary btn-sm" asp-action="Index">Danh sách</a>
+    </div>
+</header>
+
+@if (Model.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Không có sự kiện trong tháng này",
+                     Text = "Chuyển tháng khác hoặc tạo sự kiện mới.",
+                     ActionText = "+ Tạo sự kiện",
+                     ActionUrl = Url.Action("Create")
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section">
+        <div class="table-shell">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width: 150px">Ngày</th>
+                        <th scope="col">Sự kiện</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in groups)
+                    {
+                        <tr>
+                            <td class="fw-semibold tnum">@group.Key.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <ul class="list" style="gap:0">
+                                    @foreach (var item in group.OrderBy(e => e.StartsAtUtc))
+                                    {
+                                        <li class="list__item" style="padding:8px 0">
+                                            <div class="list__main">
+                                                <p class="list__title">
+                                                    <span class="badge badge--neutral tnum">@item.StartsAtUtc.ToLocalTime().ToString("HH:mm")</span>
+                                                    <a asp-action="Details" asp-route-id="@item.Id">@item.Title</a>
+                                                </p>
+                                                <p class="list__meta">@item.Location</p>
+                                            </div>
+                                            <div class="list__side">
+                                                @if (item.Status == SIMS.Domain.Events.EventStatus.Published)
+                                                {
+                                                    <span class="badge badge--ok badge--dot">@StatusLabel(item.Status)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge--neutral">@StatusLabel(item.Status)</span>
+                                                }
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}

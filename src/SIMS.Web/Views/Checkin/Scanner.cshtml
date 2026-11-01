@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "Quét QR check-in";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ / Check-in</span>
+        <h1>Quét QR check-in</h1>
+        <p class="page-head__sub">Đưa mã QR vào khung hình, hoặc nhập mã thủ công bên dưới.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Nhập mã</a>
+    </div>
+</header>
+
+<div class="grid-2">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Camera</h2>
+                <p class="section__sub">Camera sau được ưu tiên trên thiết bị di động.</p>
+            </div>
+        </div>
+        <div class="section__body">
+            <div class="ratio ratio-4x3" style="background:#0b0f14;border-radius:var(--radius);overflow:hidden">
+                <video id="qr-video" autoplay playsinline muted class="w-100 h-100" style="object-fit:cover"></video>
+            </div>
+            <p id="qr-status" class="muted small" style="margin:12px 0 0">Đang khởi động camera…</p>
+        </div>
+    </section>
+
+    <section class="section form-panel">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Hoặc nhập mã thủ công</h2>
+                <p class="section__sub">Dùng khi thiết bị không hỗ trợ quét QR.</p>
+            </div>
+        </div>
+
+        <form asp-action="Index" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="token">Mã check-in <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="token" name="token" required autocomplete="off" />
+                    </div>
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="studentCode">MSSV</label>
+                        <input class="form-control" id="studentCode" name="studentCode" autocomplete="off"
+                               placeholder="Bỏ trống nếu tài khoản đã liên kết hồ sơ" />
+                    </div>
+                    <input type="hidden" name="method" value="Manual" />
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Check-in</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (async function () {
+            var video = document.getElementById('qr-video');
+            var status = document.getElementById('qr-status');
+
+            if (!('BarcodeDetector' in window) || !navigator.mediaDevices) {
+                status.textContent = 'Thiết bị/trình duyệt không hỗ trợ quét QR — hãy nhập mã ở ô bên cạnh.';
+                return;
+            }
+
+            try {
+                var stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                video.srcObject = stream;
+
+                var detector = new BarcodeDetector({ formats: ['qr_code'] });
+                status.textContent = 'Đưa mã QR vào khung hình.';
+
+                setInterval(async function () {
+                    try {
+                        var codes = await detector.detect(video);
+                        if (codes.length > 0) {
+                            var raw = codes[0].rawValue || '';
+                            var match = raw.match(/[?&]code=([A-Za-z0-9]+)/);
+                            var token = match ? match[1] : raw.trim();
+                            if (token) {
+                                window.location.href = '/Checkin?code=' + encodeURIComponent(token);
+                            }
+                        }
+                    } catch (ignore) {
+                        /* bỏ qua lỗi frame */
+                    }
+                }, 700);
+            } catch (error) {
+                status.textContent = 'Không mở được camera: ' + error.message + '. Hãy nhập mã thủ công.';
+            }
+        })();
+    </script>
+}

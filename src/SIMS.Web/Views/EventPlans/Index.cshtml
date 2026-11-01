@@ -1,0 +1,406 @@
+@model SIMS.Web.Models.EventPlanPageViewModel
+@{
+    ViewData["Title"] = "Kế hoạch sự kiện";
+    var plan = Model.Plan;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ / Sự kiện</span>
+        <h1>Kế hoạch: @Model.Event.Title</h1>
+        <p class="page-head__sub">
+            <code>@Model.Event.Code</code> · @Model.Event.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+        </p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Events" asp-action="Details" asp-route-id="@Model.Event.Id">Sự kiện</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Export" asp-route-eventId="@Model.Event.Id">Xuất CSV</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Export" asp-route-eventId="@Model.Event.Id" asp-route-format="xlsx">Xuất Excel</a>
+    </div>
+</header>
+
+@if (plan is null)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Không tải được kế hoạch",
+                     Text = "Thử tải lại trang hoặc kiểm tra sự kiện còn tồn tại.",
+                     ActionText = "Về danh sách sự kiện",
+                     ActionUrl = Url.Action("Index", "Events")
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section form-panel" style="margin-bottom:16px">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin kế hoạch</h2>
+                <p class="section__sub">Tóm tắt, người lập và đối tượng tham gia.</p>
+            </div>
+        </div>
+
+        <form asp-action="Details" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="eventId" value="@Model.Event.Id" />
+
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="summary">Tóm tắt kế hoạch</label>
+                        <textarea class="form-control" id="summary" name="summary" rows="2">@plan.Plan.Summary</textarea>
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="implementationDate">Ngày triển khai</label>
+                        <input class="form-control" id="implementationDate" name="implementationDate" type="date"
+                               value="@plan.Plan.ImplementationDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="preparedBy">Người lập kế hoạch</label>
+                        <input class="form-control" id="preparedBy" name="preparedBy" value="@plan.Plan.PreparedBy" />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="approvedBy">Người phê duyệt</label>
+                        <input class="form-control" id="approvedBy" name="approvedBy" value="@plan.Plan.ApprovedBy" />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="participants">Đối tượng tham gia</label>
+                        <input class="form-control" id="participants" name="participants" value="@plan.Plan.Participants" />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="responsibleOrganizer">Chủ trì tổ chức</label>
+                        <input class="form-control" id="responsibleOrganizer" name="responsibleOrganizer"
+                               value="@plan.Plan.ResponsibleOrganizer" />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="advisorCoordinator">Cố vấn / phối hợp</label>
+                        <input class="form-control" id="advisorCoordinator" name="advisorCoordinator"
+                               value="@plan.Plan.AdvisorCoordinator" />
+                    </div>
+
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="description">Mô tả / hình thức tổ chức</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">@plan.Plan.Description</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Lưu thông tin kế hoạch</button>
+            </div>
+        </form>
+    </section>
+
+    <div class="grid-2">
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Mục tiêu (@plan.Objectives.Count)</h2>
+                </div>
+            </div>
+
+            <div class="section__body">
+                @if (plan.Objectives.Count == 0)
+                {
+                    <p class="muted">Chưa có mục tiêu.</p>
+                }
+                else
+                {
+                    <ul class="list">
+                        @foreach (var item in plan.Objectives)
+                        {
+                            <li class="list__item">
+                                <span class="list__main">@item.Content</span>
+                                <span class="list__side">
+                                    <form asp-action="Remove" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                                        <input type="hidden" name="section" value="objective" />
+                                        <input type="hidden" name="itemId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                    </form>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <form asp-action="AddObjective" method="post" style="display:flex;gap:8px;margin-top:12px">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                    <input class="form-control" name="content" placeholder="Mục tiêu mới" required />
+                    <button type="submit" class="btn btn-primary" style="flex:none">Thêm</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Hành động (@plan.Actions.Count)</h2>
+                </div>
+            </div>
+
+            <div class="section__body">
+                @if (plan.Actions.Count == 0)
+                {
+                    <p class="muted">Chưa có hành động.</p>
+                }
+                else
+                {
+                    <ul class="list">
+                        @foreach (var item in plan.Actions)
+                        {
+                            <li class="list__item">
+                                <span class="list__main">
+                                    <span class="list__title">@item.Content</span>
+                                    <span class="list__meta">
+                                        @item.Owner@(item.DueDate is null ? string.Empty : $" · hạn {item.DueDate:dd/MM/yyyy}")
+                                    </span>
+                                </span>
+                                <span class="list__side">
+                                    <form asp-action="Remove" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                                        <input type="hidden" name="section" value="action" />
+                                        <input type="hidden" name="itemId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                    </form>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <form asp-action="AddAction" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                    <div class="form-grid form-grid--3" style="margin-top:12px">
+                        <div class="form-field form-field--full">
+                            <input class="form-control" name="content" placeholder="Nội dung hành động" required
+                                   aria-label="Nội dung hành động" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="owner" placeholder="Phụ trách" required aria-label="Phụ trách" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="dueDate" type="date" aria-label="Hạn" />
+                        </div>
+                        <div class="form-field">
+                            <button type="submit" class="btn btn-primary w-100">Thêm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section" style="grid-column:1/-1">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Ngân sách (@plan.BudgetTotal.ToString("N0") đ)</h2>
+                    <p class="section__sub">@plan.BudgetItems.Count hạng mục.</p>
+                </div>
+            </div>
+
+            @if (plan.BudgetItems.Count == 0)
+            {
+                <div class="section__body">
+                    <p class="muted mb-0">Chưa có dòng ngân sách.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-shell">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Hạng mục</th>
+                                <th scope="col" class="col-num">SL</th>
+                                <th scope="col" class="col-num">Đơn giá</th>
+                                <th scope="col" class="col-num">Thành tiền</th>
+                                <th scope="col" class="col-actions"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in plan.BudgetItems)
+                            {
+                                <tr>
+                                    <td class="fw-medium">@item.ItemName</td>
+                                    <td class="col-num">@item.Quantity</td>
+                                    <td class="col-num">@item.UnitPrice.ToString("N0")</td>
+                                    <td class="col-num">@item.Total.ToString("N0")</td>
+                                    <td class="col-actions">
+                                        <form asp-action="Remove" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                                            <input type="hidden" name="section" value="budget" />
+                                            <input type="hidden" name="itemId" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="section__body">
+                <form asp-action="AddBudget" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                    <div class="form-grid" style="grid-template-columns:minmax(0,2fr) minmax(0,.7fr) minmax(0,1fr) auto">
+                        <div class="form-field">
+                            <input class="form-control" name="itemName" placeholder="Hạng mục" required aria-label="Hạng mục" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="quantity" type="number" min="1" value="1" required aria-label="Số lượng" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="unitPrice" type="number" min="0" step="0.01"
+                                   placeholder="Đơn giá" required aria-label="Đơn giá" />
+                        </div>
+                        <div class="form-field">
+                            <button type="submit" class="btn btn-primary">Thêm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Thiết bị (@plan.Equipment.Count)</h2>
+                </div>
+            </div>
+
+            <div class="section__body">
+                @if (plan.Equipment.Count == 0)
+                {
+                    <p class="muted">Chưa có thiết bị.</p>
+                }
+                else
+                {
+                    <ul class="list">
+                        @foreach (var item in plan.Equipment)
+                        {
+                            <li class="list__item">
+                                <span class="list__main">
+                                    <span class="list__title">
+                                        @item.Name
+                                        <span class="badge badge--neutral">@item.Quantity</span>
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(item.Note))
+                                    {
+                                        <span class="list__meta">@item.Note</span>
+                                    }
+                                </span>
+                                <span class="list__side">
+                                    <form asp-action="Remove" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                                        <input type="hidden" name="section" value="equipment" />
+                                        <input type="hidden" name="itemId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                    </form>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <form asp-action="AddEquipment" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                    <div class="form-grid form-grid--3" style="margin-top:12px">
+                        <div class="form-field form-field--full">
+                            <input class="form-control" name="name" placeholder="Tên thiết bị" required aria-label="Tên thiết bị" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="quantity" type="number" min="1" value="1" required aria-label="Số lượng" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="note" placeholder="Ghi chú" aria-label="Ghi chú" />
+                        </div>
+                        <div class="form-field">
+                            <button type="submit" class="btn btn-primary w-100">Thêm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Timeline (@plan.Timeline.Count)</h2>
+                </div>
+            </div>
+
+            @if (plan.Timeline.Count == 0)
+            {
+                <div class="section__body">
+                    <p class="muted mb-0">Chưa có mốc thời gian.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-shell">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width:120px">Mốc</th>
+                                <th scope="col">Hoạt động</th>
+                                <th scope="col" class="col-actions"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in plan.Timeline)
+                            {
+                                <tr>
+                                    <td class="col-num">@item.TimeLabel</td>
+                                    <td>@item.Activity</td>
+                                    <td class="col-actions">
+                                        <form asp-action="Remove" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                                            <input type="hidden" name="section" value="timeline" />
+                                            <input type="hidden" name="itemId" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="section__body">
+                <form asp-action="AddTimeline" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                    <div class="form-grid" style="grid-template-columns:minmax(0,.6fr) minmax(0,2fr) auto">
+                        <div class="form-field">
+                            <input class="form-control" name="timeLabel" placeholder="08:00" required aria-label="Mốc thời gian" />
+                        </div>
+                        <div class="form-field">
+                            <input class="form-control" name="activity" placeholder="Hoạt động" required aria-label="Hoạt động" />
+                        </div>
+                        <div class="form-field">
+                            <button type="submit" class="btn btn-primary">Thêm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+}

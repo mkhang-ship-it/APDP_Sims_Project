@@ -1,0 +1,36 @@
+@model SIMS.Web.Models.CourseFormModel
+@{
+    ViewData["Title"] = "Sửa học phần";
+    ViewData["IsEdit"] = true;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Học phần</span>
+        <h1>Sửa học phần</h1>
+        <p class="page-head__sub">Mã học phần được giữ cố định để không phá đăng ký hiện có.</p>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin học phần</h2>
+        </div>
+    </div>
+
+    <form asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <partial name="_Form" model="Model" />
+        </div>
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,106 @@
+@model SIMS.Web.Models.ProfilePageModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    var initial = string.IsNullOrWhiteSpace(Model.DisplayName) ? "?" : Model.DisplayName.Trim()[..1].ToUpperInvariant();
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài khoản</span>
+        <h1>Hồ sơ cá nhân</h1>
+        <p class="page-head__sub">Cập nhật tên hiển thị, email và mật khẩu đăng nhập.</p>
+    </div>
+</header>
+
+<section class="section" style="margin-bottom:16px">
+    <div class="section__body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <span class="avatar" aria-hidden="true">@initial</span>
+        <div style="min-width:0">
+            <div style="font-size:1rem;font-weight:600">@Model.DisplayName</div>
+            <div class="muted small">
+                <code>@Model.Username</code>
+                @if (!string.IsNullOrWhiteSpace(Model.Email))
+                {
+                    <span aria-hidden="true"> · </span>@Model.Email
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="grid-2">
+    <section class="section form-panel">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin tài khoản</h2>
+                <p class="section__sub">Tên đăng nhập không thể thay đổi.</p>
+            </div>
+        </div>
+
+        <form asp-action="Update" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="username">Tên đăng nhập</label>
+                        <input class="form-control" id="username" value="@Model.Username" readonly />
+                    </div>
+
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="displayName">Tên hiển thị <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="displayName" name="displayName"
+                               value="@Model.DisplayName" required maxlength="120" />
+                    </div>
+
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="email">Email</label>
+                        <input class="form-control" id="email" name="email" type="email"
+                               value="@Model.Email" maxlength="254" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Lưu hồ sơ</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="section form-panel">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Đổi mật khẩu</h2>
+                <p class="section__sub">Mật khẩu mới tối thiểu 8 ký tự.</p>
+            </div>
+        </div>
+
+        <form asp-action="ChangePassword" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="currentPassword">Mật khẩu hiện tại <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="currentPassword" name="currentPassword"
+                               type="password" autocomplete="current-password" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="newPassword">Mật khẩu mới <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="newPassword" name="newPassword"
+                               type="password" autocomplete="new-password" minlength="8" maxlength="128" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="confirmPassword">Xác nhận <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="confirmPassword" name="confirmPassword"
+                               type="password" autocomplete="new-password" minlength="8" maxlength="128" required />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-outline-secondary">Đổi mật khẩu</button>
+            </div>
+        </form>
+    </section>
+</div>

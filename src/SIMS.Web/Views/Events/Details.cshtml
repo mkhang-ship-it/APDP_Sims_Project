@@ -1,0 +1,246 @@
+@model SIMS.Web.Models.EventDetailsViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Chi tiết sự kiện";
+    var item = Model.Event;
+    var canViewPlan = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:event_plans:view")).Succeeded;
+
+    string StatusLabel(SIMS.Domain.Events.EventStatus status) => status switch
+    {
+        SIMS.Domain.Events.EventStatus.Draft => "Nháp",
+        SIMS.Domain.Events.EventStatus.Published => "Đã công bố",
+        SIMS.Domain.Events.EventStatus.Completed => "Hoàn thành",
+        _ => "Đã huỷ",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ / Sự kiện</span>
+        <h1>@item.Title</h1>
+        <p class="page-head__sub">
+            <code>@item.Code</code> ·
+            @item.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")–@item.EndsAtUtc.ToLocalTime().ToString("HH:mm")
+            · @item.Location
+        </p>
+    </div>
+    <div class="page-head__actions">
+        @if (canViewPlan)
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-controller="EventPlans" asp-action="Index" asp-route-eventId="@item.Id">Kế hoạch</a>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Danh sách</a>
+        <a class="btn btn-primary btn-sm" asp-action="Edit" asp-route-id="@item.Id">Sửa sự kiện</a>
+    </div>
+</header>
+
+<div class="grid-2">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin sự kiện</h2>
+            </div>
+            @switch (item.Status)
+            {
+                case SIMS.Domain.Events.EventStatus.Published:
+                    <span class="badge badge--ok badge--dot">@StatusLabel(item.Status)</span>
+                    break;
+                case SIMS.Domain.Events.EventStatus.Draft:
+                    <span class="badge badge--neutral badge--dot">@StatusLabel(item.Status)</span>
+                    break;
+                case SIMS.Domain.Events.EventStatus.Completed:
+                    <span class="badge badge--info badge--dot">@StatusLabel(item.Status)</span>
+                    break;
+                default:
+                    <span class="badge badge--danger badge--dot">@StatusLabel(item.Status)</span>
+                    break;
+            }
+        </div>
+        <div class="section__body">
+            <dl class="detail-list">
+                <div>
+                    <dt>Thời gian</dt>
+                    <dd>
+                        @item.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        – @item.EndsAtUtc.ToLocalTime().ToString("HH:mm")
+                    </dd>
+                </div>
+                <div>
+                    <dt>Sức chứa</dt>
+                    <dd class="tnum">@item.Capacity</dd>
+                </div>
+                <div>
+                    <dt>Địa điểm</dt>
+                    <dd>@item.Location</dd>
+                </div>
+                <div>
+                    <dt>Toạ độ</dt>
+                    <dd>
+                        @if (item.Venue is { } venue)
+                        {
+                            <span class="tnum">@venue.Latitude.ToString("0.#####"), @venue.Longitude.ToString("0.#####")</span>
+                            <span class="muted small"> · geofence 5 km</span>
+                        }
+                        else
+                        {
+                            <span class="muted">Chưa đặt — không kiểm tra vị trí</span>
+                        }
+                    </dd>
+                </div>
+                <div class="detail-list__full">
+                    <dt>Mô tả</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(item.Description) ? "—" : item.Description)</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Check-in</h2>
+                <p class="section__sub">Mã QR và link dành cho sinh viên.</p>
+            </div>
+        </div>
+        <div class="section__body">
+            <dl class="meta-list">
+                <div>
+                    <dt>Mã QR</dt>
+                    <dd><code class="fs-6">@item.CheckinToken</code></dd>
+                </div>
+                <div>
+                    <dt>Link check-in</dt>
+                    <dd class="text-break small"><a href="@Model.CheckinUrl">@Model.CheckinUrl</a></dd>
+                </div>
+            </dl>
+
+            <div class="row-inline" style="margin-top:14px">
+                <form asp-action="RotateToken" asp-route-id="@item.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Tạo mã mới</button>
+                </form>
+                @if (item.Status == SIMS.Domain.Events.EventStatus.Draft)
+                {
+                    <form asp-action="Publish" asp-route-id="@item.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-primary">Công bố</button>
+                    </form>
+                }
+                @if (item.Status == SIMS.Domain.Events.EventStatus.Published)
+                {
+                    <form asp-action="Complete" asp-route-id="@item.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-primary">Hoàn thành</button>
+                    </form>
+                }
+                @if (item.Status != SIMS.Domain.Events.EventStatus.Cancelled && item.Status != SIMS.Domain.Events.EventStatus.Completed)
+                {
+                    <form asp-action="Cancel" asp-route-id="@item.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Huỷ</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </section>
+</div>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Đã check-in</h2>
+            <p class="section__sub">@Model.Attendance.Count người tham gia</p>
+        </div>
+    </div>
+
+    @if (Model.Attendance.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có ai check-in",
+                     Text = "Chia sẻ mã QR hoặc link check-in cho sinh viên tham gia sự kiện."
+                 })" />
+    }
+    else
+    {
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">MSSV</th>
+                        <th scope="col">Họ tên</th>
+                        <th scope="col">Thời điểm</th>
+                        <th scope="col">Phương thức</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Attendance)
+                    {
+                        <tr>
+                            <td><code>@row.StudentCode</code></td>
+                            <td class="fw-medium">@row.StudentName</td>
+                            <td class="tnum">@row.Attendance.CheckedInAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td>
+                            <td><span class="badge badge--neutral">@row.Attendance.Method</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Ảnh sự kiện</h2>
+            <p class="section__sub">@Model.Images.Count ảnh</p>
+        </div>
+    </div>
+
+    @if (Model.Images.Count > 0)
+    {
+        <div class="section__body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+            @foreach (var image in Model.Images)
+            {
+                <figure class="m-0">
+                    <img src="@Url.Action("Image", "Events", new { id = image.Id })"
+                         alt="@image.Caption"
+                         style="width:100%;height:130px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border)" />
+                    <figcaption class="muted small" style="margin-top:6px">@image.Caption</figcaption>
+                    @if (User.IsInRole("Admin") || User.IsInRole("Faculty"))
+                    {
+                        <form asp-action="DeleteImage" asp-route-id="@Model.Event.Id" method="post" style="margin-top:4px">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="imageId" value="@image.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Xoá ảnh</button>
+                        </form>
+                    }
+                </figure>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="section__body muted" style="font-size:.83rem">Chưa có ảnh nào được tải lên.</div>
+    }
+
+    @if (User.IsInRole("Admin") || User.IsInRole("Faculty"))
+    {
+        <form asp-action="UploadImage" asp-route-id="@Model.Event.Id" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="section__body" style="border-top:1px solid var(--border);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end">
+                <div class="form-field">
+                    <label class="form-label" for="caption">Chú thích</label>
+                    <input class="form-control" id="caption" name="caption" placeholder="VD: Khai mạc" maxlength="200" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="event-image">Ảnh</label>
+                    <input class="form-control" id="event-image" name="file" type="file" accept="image/*" required />
+                </div>
+                <div class="form-field">
+                    <button type="submit" class="btn btn-primary">Tải ảnh</button>
+                </div>
+            </div>
+        </form>
+    }
+</section>

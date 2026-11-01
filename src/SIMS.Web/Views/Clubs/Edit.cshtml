@@ -1,0 +1,125 @@
+@model SIMS.Web.Models.ClubEditViewModel
+@{
+    ViewData["Title"] = "Quản lý CLB";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ</span>
+        <h1>@Model.Club.Name</h1>
+        <p class="page-head__sub"><code>@Model.Club.Code</code> · @Model.Members.Count thành viên</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+<div class="grid-2">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin CLB</h2>
+                <p class="section__sub">Mã CLB cố định, chỉ đổi được tên hiển thị.</p>
+            </div>
+        </div>
+        <form asp-action="Edit" asp-route-id="@Model.Club.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="form-field" style="margin-bottom:14px">
+                    <label class="form-label" asp-for="Form.Code">Mã CLB</label>
+                    <input class="form-control" asp-for="Form.Code" readonly />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" asp-for="Form.Name">Tên CLB <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" asp-for="Form.Name" required />
+                    <span class="text-danger small" asp-validation-for="Form.Name"></span>
+                </div>
+            </div>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Quay lại</a>
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thêm thành viên</h2>
+                <p class="section__sub">Gán người dùng vào CLB với vai trò tương ứng.</p>
+            </div>
+        </div>
+        <form asp-action="Assign" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="clubId" value="@Model.Club.Id" />
+            <div class="section__body">
+                <div class="form-field" style="margin-bottom:14px">
+                    <label class="form-label" for="userId">Người dùng <span class="required-mark" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="userId" name="userId" required>
+                        <option value="">— Chọn người dùng —</option>
+                        @foreach (var user in Model.AllUsers)
+                        {
+                            <option value="@user.Id">@user.Username — @user.DisplayName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="role">Vai trò trong CLB</label>
+                    <select class="form-select" id="role" name="role" required>
+                        @foreach (var role in Model.AvailableRoles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Thêm thành viên</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thành viên hiện tại</h2>
+            <p class="section__sub">@Model.Members.Count người</p>
+        </div>
+    </div>
+
+    @if (Model.Members.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có thành viên",
+                     Text = "Dùng biểu mẫu phía trên để thêm thành viên đầu tiên."
+                 })" />
+    }
+    else
+    {
+        <div class="section__body">
+            <ul class="list">
+                @foreach (var member in Model.Members)
+                {
+                    <li class="list__item">
+                        <div class="list__main">
+                            <p class="list__title">@member.DisplayName</p>
+                            <p class="list__meta">@member.Username</p>
+                        </div>
+                        <div class="list__side">
+                            <span class="badge badge--neutral">@member.Role</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

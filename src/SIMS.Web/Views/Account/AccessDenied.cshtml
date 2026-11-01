@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = "Không có quyền truy cập";
+}
+
+<div class="state-page">
+    <span class="state-page__code">403</span>
+    <h1 class="state-page__title">Không có quyền truy cập</h1>
+    <p class="state-page__text">Tài khoản của bạn không được phép mở chức năng này. Liên hệ quản trị viên nếu cần cấp quyền.</p>
+    <div class="state-page__actions">
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+        <a class="btn btn-outline-secondary" asp-controller="Account" asp-action="Logout"
+           onclick="event.preventDefault();document.getElementById('logout-403').submit();">Đăng xuất</a>
+    </div>
+    <form id="logout-403" asp-controller="Account" asp-action="Logout" method="post" hidden>
+        @Html.AntiForgeryToken()
+    </form>
+</div>

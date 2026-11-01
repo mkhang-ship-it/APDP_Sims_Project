@@ -1,0 +1,211 @@
+@model SIMS.Web.Models.AwardDetailsPageModel
+@using SIMS.Domain.Awards
+@{
+    ViewData["Title"] = "Chi tiết giải thưởng";
+    var award = Model.Award;
+
+    string StatusLabel(AwardStatus status) => status switch
+    {
+        AwardStatus.Awarded => "Đã trao",
+        AwardStatus.Revoked => "Thu hồi",
+        _ => "Chờ trao",
+    };
+
+    string StatusBadge(AwardStatus status) => status switch
+    {
+        AwardStatus.Awarded => "badge--ok",
+        AwardStatus.Revoked => "badge--danger",
+        _ => "badge--warn",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng / Khen thưởng</span>
+        <h1>@award.Title</h1>
+        <p class="page-head__sub">
+            <code>@award.Code</code> · @award.Period · @award.AwardDate.ToString("dd/MM/yyyy")
+        </p>
+    </div>
+    <div class="page-head__actions">
+        <span class="badge @StatusBadge(award.Status) badge--dot">@StatusLabel(award.Status)</span>
+        <form asp-action="Delete" asp-route-id="@award.Id" method="post"
+              onsubmit="return confirm('Xoá giải thưởng và toàn bộ người nhận?');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger btn-sm">Xoá</button>
+        </form>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-clubId="@award.ClubId">Danh sách</a>
+    </div>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(award.Notes))
+{
+    <div class="alert alert-info" role="status">
+        <p class="alert__title">Ghi chú</p>
+        @award.Notes
+    </div>
+}
+
+<div class="grid-2">
+    <section class="section form-panel">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin giải thưởng</h2>
+                <p class="section__sub">Chỉnh sửa tên, kỳ, ngày trao và trạng thái.</p>
+            </div>
+        </div>
+
+        <form asp-action="Edit" asp-route-id="@award.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="Title">Tên <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="Title" name="Title" value="@award.Title" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="Period">Kỳ</label>
+                        <input class="form-control" id="Period" name="Period" value="@award.Period" />
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="AwardDate">Ngày trao</label>
+                        <input class="form-control" id="AwardDate" name="AwardDate" type="date"
+                               value="@award.AwardDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="Status">Trạng thái</label>
+                        <select class="form-select" id="Status" name="Status">
+                            @foreach (var value in Enum.GetValues<AwardStatus>())
+                            {
+                                if (value == award.Status)
+                                {
+                                    <option value="@value" selected>@StatusLabel(value)</option>
+                                }
+                                else
+                                {
+                                    <option value="@value">@StatusLabel(value)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="Notes">Ghi chú</label>
+                        <textarea class="form-control" id="Notes" name="Notes" rows="3">@award.Notes</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+            </div>
+        </form>
+    </section>
+
+    <div class="stack">
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Người nhận (@Model.Recipients.Count)</h2>
+                    <p class="section__sub">Kèm chứng nhận nếu đã tải lên.</p>
+                </div>
+            </div>
+
+            @if (Model.Recipients.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateModel
+                         {
+                             Title = "Chưa có người nhận",
+                             Text = "Thêm thành viên ở biểu mẫu bên dưới."
+                         })" />
+            }
+            else
+            {
+                <div class="table-shell">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Thành viên</th>
+                                <th scope="col">Chứng nhận</th>
+                                <th scope="col" class="col-actions"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var recipient in Model.Recipients)
+                            {
+                                <tr>
+                                    <td class="fw-medium">
+                                        @(Model.UserNames.TryGetValue(recipient.UserId, out var name) ? name : "?")
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(recipient.Attachment))
+                                        {
+                                            <a asp-action="DownloadAttachment" asp-route-id="@award.Id"
+                                               asp-route-recipientId="@recipient.Id">Tải</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="muted">Không có</span>
+                                        }
+                                    </td>
+                                    <td class="col-actions">
+                                        <form asp-action="RemoveRecipient" asp-route-id="@award.Id" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="recipientId" value="@recipient.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="section form-panel">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Thêm người nhận</h2>
+                    <p class="section__sub">Có thể đính kèm chứng nhận (PDF/ảnh).</p>
+                </div>
+            </div>
+
+            @if (Model.AvailableMembers.Count == 0)
+            {
+                <div class="section__body">
+                    <p class="muted mb-0">Tất cả thành viên đã có trong danh sách.</p>
+                </div>
+            }
+            else
+            {
+                <form asp-action="AddRecipient" asp-route-id="@award.Id" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="section__body">
+                        <div class="form-grid">
+                            <div class="form-field form-field--full">
+                                <label class="form-label" for="userId">Thành viên</label>
+                                <select class="form-select" id="userId" name="userId" required>
+                                    @foreach (var member in Model.AvailableMembers)
+                                    {
+                                        <option value="@member.Id">@member.DisplayName (@member.Username)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-field form-field--full">
+                                <label class="form-label" for="attachment">Chứng nhận</label>
+                                <input class="form-control" id="attachment" name="attachment" type="file" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Thêm người nhận</button>
+                    </div>
+                </form>
+            }
+        </section>
+    </div>
+</div>

@@ -1,0 +1,188 @@
+@model SIMS.Web.Models.DisciplineRecordsPageModel
+@using SIMS.Domain.Disciplines
+@{
+    ViewData["Title"] = "Bản ghi kỷ luật";
+    var clubs = ViewData["Clubs"] as IReadOnlyList<SIMS.Web.Models.ClubOption> ?? Array.Empty<SIMS.Web.Models.ClubOption>();
+    var selectedClubId = (Guid)(ViewData["SelectedClubId"] ?? Guid.Empty);
+
+    string StatusLabel(DisciplineRecordStatus status)
+        => status == DisciplineRecordStatus.Active ? "Hiệu lực" : "Đã thu hồi";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Bản ghi kỷ luật</h1>
+        <p class="page-head__sub">@Model.Items.Count bản ghi điểm đã ghi nhận.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-clubId="@selectedClubId">Danh mục</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Summary" asp-route-clubId="@selectedClubId">Tổng hợp điểm</a>
+    </div>
+</header>
+
+@if (clubs.Count > 1)
+{
+    <form method="get" asp-action="Records" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label mb-0" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in clubs)
+                    {
+                        if (club.Id == selectedClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+@if (Model.Disciplines.Count > 0 && Model.Members.Count > 0)
+{
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Ghi nhận điểm</h2>
+                <p class="section__sub">Chọn thành viên và danh mục áp dụng.</p>
+            </div>
+        </div>
+        <form asp-action="Apply" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="clubId" value="@selectedClubId" />
+            <div class="section__body">
+                <div class="form-grid form-grid--3">
+                    <div class="form-field">
+                        <label class="form-label" for="apply-user">Thành viên <span class="required-mark" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="apply-user" name="UserId" required>
+                            @foreach (var member in Model.Members)
+                            {
+                                <option value="@member.Id">@member.DisplayName (@member.Username)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="apply-discipline">Danh mục <span class="required-mark" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="apply-discipline" name="DisciplineId" required>
+                            @foreach (var discipline in Model.Disciplines)
+                            {
+                                <option value="@discipline.Id">
+                                    @discipline.Name (@(discipline.Points > 0 ? "+" : string.Empty)@discipline.Points.ToString("0.#"))
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="apply-date">Ngày áp dụng <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="apply-date" name="AppliedDate" type="date" required
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="apply-period">Kỳ</label>
+                        <input class="form-control" id="apply-period" name="Period" placeholder="Kỳ" value="HK1 2026-2027" maxlength="40" />
+                    </div>
+                    <div class="form-field" style="grid-column:span 2">
+                        <label class="form-label" for="apply-notes">Ghi chú</label>
+                        <input class="form-control" id="apply-notes" name="Notes" placeholder="Ghi chú" maxlength="500" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Lưu điểm</button>
+            </div>
+        </form>
+    </section>
+}
+
+<section class="section" data-table data-page-size="10">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Bản ghi điểm</h2>
+            <p class="section__sub">Có thể thu hồi bản ghi còn hiệu lực.</p>
+        </div>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có bản ghi",
+                     Text = "Dùng biểu mẫu ghi nhận điểm phía trên để thêm bản ghi đầu tiên."
+                 })" />
+    }
+    else
+    {
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo thành viên, danh mục, kỳ…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Thành viên</th>
+                        <th scope="col" data-sort>Danh mục</th>
+                        <th scope="col" class="col-num" data-sort>Điểm</th>
+                        <th scope="col" data-sort>Ngày</th>
+                        <th scope="col" data-sort>Kỳ</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var points = item.Discipline?.Points ?? 0m;
+                        <tr>
+                            <td class="fw-medium">@(Model.UserNames.TryGetValue(item.Record.UserId, out var name) ? name : "?")</td>
+                            <td>
+                                @(item.Discipline?.Name ?? "?")
+                                @if (!string.IsNullOrWhiteSpace(item.Record.Notes))
+                                {
+                                    <span class="muted small d-block">@item.Record.Notes</span>
+                                }
+                            </td>
+                            <td class="col-num @(points < 0 ? "text-danger" : "text-success")">
+                                @(points > 0 ? "+" : string.Empty)@points.ToString("0.#")
+                            </td>
+                            <td class="col-num" data-value="@item.Record.AppliedDate.ToString("yyyy-MM-dd")">
+                                @item.Record.AppliedDate.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>@item.Record.Period</td>
+                            <td>
+                                @if (item.Record.IsActive)
+                                {
+                                    <span class="badge badge--ok badge--dot">@StatusLabel(item.Record.Status)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge--neutral badge--dot">@StatusLabel(item.Record.Status)</span>
+                                }
+                            </td>
+                            <td class="col-actions">
+                                @if (item.Record.IsActive)
+                                {
+                                    <form asp-action="Revoke" asp-route-id="@item.Record.Id" method="post"
+                                          onsubmit="return confirm('Thu hồi bản ghi này?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Thu hồi</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    }
+</section>

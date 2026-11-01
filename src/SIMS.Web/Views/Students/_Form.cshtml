@@ -1,0 +1,45 @@
+@model SIMS.Web.Models.StudentFormModel
+@{
+    var isEdit = ViewData["IsEdit"] as bool? ?? false;
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="form-grid">
+    <div class="form-field">
+        <label asp-for="StudentCode" class="form-label">MSSV <span class="required-mark" aria-hidden="true">*</span></label>
+        @if (isEdit)
+        {
+            <input asp-for="StudentCode" class="form-control" readonly />
+        }
+        else
+        {
+            <input asp-for="StudentCode" class="form-control" autocomplete="off" placeholder="VD: SV0001" required />
+        }
+        <span asp-validation-for="StudentCode" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="FullName" class="form-label">Họ tên <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="FullName" class="form-control" autocomplete="name" required />
+        <span asp-validation-for="FullName" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="Email" class="form-label">Email <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="Email" class="form-control" autocomplete="email" required />
+        <span asp-validation-for="Email" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="DateOfBirth" class="form-label">Ngày sinh</label>
+        <input asp-for="DateOfBirth" class="form-control" type="date" />
+        <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field form-field--full">
+        <label asp-for="Program" class="form-label">Chương trình học <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="Program" class="form-control" placeholder="VD: Công nghệ thông tin" required />
+        <span asp-validation-for="Program" class="text-danger small"></span>
+    </div>
+</div>

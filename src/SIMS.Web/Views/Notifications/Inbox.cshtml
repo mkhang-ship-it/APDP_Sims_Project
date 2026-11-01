@@ -1,0 +1,74 @@
+@model SIMS.Web.Models.NotificationInboxPageModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Thông báo";
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:notifications:view")).Succeeded;
+    var unread = Model.Items.Count(row => !row.IsRead);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Thông báo</h1>
+        <p class="page-head__sub">@unread chưa đọc / @Model.Items.Count</p>
+    </div>
+    <div class="page-head__actions">
+        @if (canManage)
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quản lý thông báo</a>
+        }
+        @if (unread > 0)
+        {
+            <form asp-action="MarkAllRead" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary btn-sm">Đánh dấu tất cả đã đọc</button>
+            </form>
+        }
+    </div>
+</header>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có thông báo nào",
+                     Text = "Thông báo do câu lạc bộ gửi sẽ xuất hiện tại đây."
+                 })" />
+    </div>
+}
+else
+{
+    <div class="list-stack">
+        @foreach (var row in Model.Items)
+        {
+            <article class="section notice @(row.IsRead ? string.Empty : "notice--unread")">
+                <div class="section__head">
+                    <div class="section__titles">
+                        <h2 class="section__title">
+                            @row.Notification.Title
+                            @if (!row.IsRead)
+                            {
+                                <span class="badge badge--accent ms-1">Mới</span>
+                            }
+                        </h2>
+                        <p class="section__sub">
+                            @row.Notification.Sender ·
+                            @row.Notification.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    </div>
+                    @if (!row.IsRead)
+                    {
+                        <form asp-action="MarkRead" asp-route-id="@row.Notification.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Đã đọc</button>
+                        </form>
+                    }
+                </div>
+                <div class="section__body">
+                    <div class="notice__body">@row.Notification.Content</div>
+                </div>
+            </article>
+        }
+    </div>
+}

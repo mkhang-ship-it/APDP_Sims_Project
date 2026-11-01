@@ -1,0 +1,307 @@
+@model SIMS.Web.Models.LuckyDrawDetailsPageModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Chi tiết bốc thăm";
+    var row = Model.Row;
+    var canEdit = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:lucky_draws:edit")).Succeeded;
+    var canDelete = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:lucky_draws:delete")).Succeeded;
+    var canDraw = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:lucky_draws:draw")).Succeeded;
+    var wonByPrize = row.Winners
+        .GroupBy(winner => winner.PrizeName)
+        .ToDictionary(group => group.Key, group => group.Count());
+    var open = row.Draw.IsOpen(DateTimeOffset.UtcNow);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng / Bốc thăm</span>
+        <h1>@row.Draw.Title</h1>
+        <p class="page-head__sub">
+            @row.Draw.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+            → @row.Draw.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+            · @row.Draw.ParticipantList.Count người tham gia
+        </p>
+    </div>
+    <div class="page-head__actions">
+        @if (open && row.Draw.IsActive)
+        {
+            <span class="badge badge--ok badge--dot">Đang mở</span>
+        }
+        else
+        {
+            <span class="badge badge--neutral badge--dot">Chưa mở/đã kết thúc</span>
+        }
+        <a class="btn btn-outline-secondary btn-sm" href="/lucky/@row.Draw.Slug" target="_blank" rel="noopener">Trang công khai</a>
+        @if (canDelete)
+        {
+            <form asp-action="Delete" asp-route-id="@row.Draw.Id" method="post"
+                  onsubmit="return confirm('Xoá chương trình và toàn bộ giải/người trúng?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">Xoá</button>
+            </form>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Danh sách</a>
+    </div>
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Người tham gia</div>
+        <div class="stat__value">@row.Draw.ParticipantList.Count</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Giải thưởng</div>
+        <div class="stat__value">@row.Prizes.Count</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã trúng</div>
+        <div class="stat__value" style="color:var(--ok)">@row.Winners.Count</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Mã bảo mật</div>
+        <div class="stat__value" style="font-size:1rem;padding-top:5px">
+            @if (string.IsNullOrWhiteSpace(row.Draw.SecurityCode))
+            {
+                <span class="muted">Không đặt</span>
+            }
+            else
+            {
+                <code>@row.Draw.SecurityCode</code>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <section class="section form-panel">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Cấu hình</h2>
+                <p class="section__sub">Thời gian quay số và danh sách người tham gia.</p>
+            </div>
+        </div>
+
+        @if (canEdit)
+        {
+            <form asp-action="Edit" asp-route-id="@row.Draw.Id" method="post">
+                @Html.AntiForgeryToken()
+                <div class="section__body">
+                    <div class="form-grid">
+                        <div class="form-field form-field--full">
+                            <label class="form-label" for="Title">Tên <span class="required-mark" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="Title" name="Title" value="@row.Draw.Title" required />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="SecurityCode">Mã bảo mật</label>
+                            <input class="form-control" id="SecurityCode" name="SecurityCode"
+                                   value="@row.Draw.SecurityCode" maxlength="20" />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label">Trạng thái</label>
+                            <label class="check-card" for="IsActive">
+                                <input class="form-check-input" type="checkbox" id="IsActive" name="IsActive" value="true"
+                                       @(row.Draw.IsActive ? "checked" : null) />
+                                <span>
+                                    <span class="check-card__title">Đang hoạt động</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="StartAt">Bắt đầu</label>
+                            <input class="form-control" id="StartAt" name="StartAt" type="datetime-local"
+                                   value="@row.Draw.StartAtUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")" required />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="EndAt">Kết thúc</label>
+                            <input class="form-control" id="EndAt" name="EndAt" type="datetime-local"
+                                   value="@row.Draw.EndAtUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")" required />
+                        </div>
+
+                        <div class="form-field form-field--full">
+                            <label class="form-label" for="Participants">Người tham gia (mỗi dòng một tên)</label>
+                            <textarea class="form-control" id="Participants" name="Participants" rows="8">@string.Join('\n', row.Draw.ParticipantList)</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <div class="section__body">
+                <dl class="detail-list">
+                    <div>
+                        <dt>Mã bảo mật</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(row.Draw.SecurityCode) ? "—" : row.Draw.SecurityCode)</dd>
+                    </div>
+                    <div>
+                        <dt>Người tham gia</dt>
+                        <dd>@string.Join(", ", row.Draw.ParticipantList)</dd>
+                    </div>
+                </dl>
+            </div>
+        }
+    </section>
+
+    <div class="stack">
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Giải thưởng (@row.Prizes.Count)</h2>
+                    <p class="section__sub">Quay số khi chương trình đang mở.</p>
+                </div>
+            </div>
+
+            @if (row.Prizes.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateModel
+                         {
+                             Title = "Chưa có giải thưởng",
+                             Text = "Thêm giải ở biểu mẫu bên dưới để bắt đầu quay số."
+                         })" />
+            }
+            else
+            {
+                <div class="table-shell">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Giải</th>
+                                <th scope="col" class="col-num">SL</th>
+                                <th scope="col" class="col-num">Đã trúng</th>
+                                <th scope="col" class="col-num">Còn</th>
+                                <th scope="col" class="col-actions"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var prize in row.Prizes)
+                            {
+                                var won = wonByPrize.TryGetValue(prize.Name, out var count) ? count : 0;
+                                var remaining = Math.Max(0, prize.Quantity - won);
+                                <tr>
+                                    <td class="fw-medium">
+                                        @prize.Name
+                                        @if (prize.IsSpecial)
+                                        {
+                                            <span class="badge badge--warn ms-1">Đặc biệt</span>
+                                        }
+                                    </td>
+                                    <td class="col-num">@prize.Quantity</td>
+                                    <td class="col-num">@won</td>
+                                    <td class="col-num">@remaining</td>
+                                    <td class="col-actions">
+                                        @if (canDraw && remaining > 0 && open)
+                                        {
+                                            <form asp-action="Draw" asp-route-id="@row.Draw.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="prizeId" value="@prize.Id" />
+                                                <button type="submit" class="btn btn-sm btn-primary">Quay</button>
+                                            </form>
+                                        }
+                                        @if (canEdit)
+                                        {
+                                            <form asp-action="DeletePrize" asp-route-id="@row.Draw.Id" method="post"
+                                                  class="d-inline" onsubmit="return confirm('Xoá giải này?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="prizeId" value="@prize.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (canEdit)
+            {
+                <div class="section__body">
+                    <form asp-action="AddPrize" asp-route-id="@row.Draw.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="form-grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,.6fr) auto auto;align-items:end">
+                            <div class="form-field">
+                                <label class="form-label" for="prize-name">Tên giải</label>
+                                <input class="form-control" id="prize-name" name="Name" placeholder="VD: Giải nhất" required maxlength="100" />
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label" for="prize-qty">SL</label>
+                                <input class="form-control" id="prize-qty" name="Quantity" type="number" min="1" max="1000" value="1" required />
+                            </div>
+                            <div class="form-field">
+                                <label class="check-card" for="isSpecial">
+                                    <input class="form-check-input" type="checkbox" name="IsSpecial" value="true" id="isSpecial" />
+                                    <span>
+                                        <span class="check-card__title">Đặc biệt</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="form-field">
+                                <button type="submit" class="btn btn-primary">Thêm</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            }
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Người trúng thưởng (@row.Winners.Count)</h2>
+                </div>
+                @if (canDraw && row.Winners.Count > 0)
+                {
+                    <form asp-action="ClearWinners" asp-route-id="@row.Draw.Id" method="post"
+                          onsubmit="return confirm('Xoá toàn bộ lượt trúng?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá kết quả</button>
+                    </form>
+                }
+            </div>
+
+            @if (row.Winners.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateModel
+                         {
+                             Title = "Chưa quay số",
+                             Text = "Kết quả quay số sẽ xuất hiện tại đây."
+                         })" />
+            }
+            else
+            {
+                <div class="table-shell">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Người trúng</th>
+                                <th scope="col">Giải</th>
+                                <th scope="col" data-sort>Thời điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var winner in row.Winners)
+                            {
+                                <tr>
+                                    <td class="fw-medium">@winner.Participant</td>
+                                    <td><span class="badge badge--accent">@winner.PrizeName</span></td>
+                                    <td class="col-num" data-value="@winner.WonAtUtc.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                        @winner.WonAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+</div>

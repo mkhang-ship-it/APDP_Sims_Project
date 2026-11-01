@@ -1,0 +1,95 @@
+@model SIMS.Web.Models.InvoiceReceiptPageModel
+@using SIMS.Domain.Finance
+@{
+    Layout = null;
+    var invoice = Model.Invoice;
+
+    string Label(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => "Đã thanh toán",
+        InvoiceStatus.Overdue => "Quá hạn",
+        _ => "Chờ thanh toán",
+    };
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phiếu thu @invoice.Code</title>
+    <style>
+        body { font-family: "Segoe UI", Arial, sans-serif; margin: 24px; color: #1f2937; }
+        .sheet { max-width: 720px; margin: 0 auto; border: 1px solid #d1d5db; padding: 28px; }
+        h1 { font-size: 22px; margin: 0 0 4px; }
+        .muted { color: #6b7280; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 6px; text-align: left; }
+        th:last-child, td:last-child { text-align: right; }
+        .totals { margin-top: 18px; font-size: 15px; }
+        .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+        .grand { font-weight: 700; border-top: 2px solid #111827; margin-top: 6px; padding-top: 6px; }
+        .toolbar { max-width: 720px; margin: 0 auto 12px; display: flex; justify-content: flex-end; gap: 8px; }
+        button { padding: 8px 14px; border: 1px solid #2563eb; background: #2563eb; color: #fff; border-radius: 6px; cursor: pointer; }
+        @@media print { .toolbar { display: none; } body { margin: 0; } .sheet { border: none; } }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="@Url.Action("Index", "Home")">Trang chủ</a>
+        <button type="button" onclick="window.print()">In phiếu</button>
+    </div>
+    <div class="sheet">
+        <h1>Phiếu thu học phí / sinh hoạt phí</h1>
+        <div class="muted">@Model.ClubName</div>
+
+        <table>
+            <tbody>
+                <tr><th scope="row">Mã hoá đơn</th><td>@invoice.Code</td></tr>
+                <tr><th scope="row">Thành viên</th><td>@Model.MemberName</td></tr>
+                <tr><th scope="row">Nội dung</th><td>@invoice.Title</td></tr>
+                <tr><th scope="row">Kỳ thu</th><td>@invoice.Period</td></tr>
+                <tr><th scope="row">Hạn thanh toán</th><td>@invoice.DueDate.ToString("dd/MM/yyyy")</td></tr>
+                <tr><th scope="row">Trạng thái</th><td>@Label(invoice.Status)</td></tr>
+            </tbody>
+        </table>
+
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Ngày</th>
+                    <th scope="col">Phương thức</th>
+                    <th scope="col">Ghi chú</th>
+                    <th scope="col">Số tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Transactions)
+                {
+                    <tr>
+                        <td>@item.PaymentDate.ToString("dd/MM/yyyy")</td>
+                        <td>@item.Method</td>
+                        <td>@item.Note</td>
+                        <td>@item.PaidAmount.ToString("N0") đ</td>
+                    </tr>
+                }
+                @if (Model.Transactions.Count == 0)
+                {
+                    <tr><td colspan="4" class="muted">Chưa có giao dịch.</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div><span>Tổng hoá đơn</span><span>@invoice.TotalAmount.ToString("N0") đ</span></div>
+            <div><span>Đã thu</span><span>@Model.PaidAmount.ToString("N0") đ</span></div>
+            <div class="grand"><span>Còn lại</span><span>@Model.Remaining.ToString("N0") đ</span></div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(invoice.Note))
+        {
+            <p class="muted">Ghi chú: @invoice.Note</p>
+        }
+        <p class="muted">Phiếu in từ SIMS — không thay thế hoá đơn tài chính theo quy định.</p>
+    </div>
+</body>
+</html>

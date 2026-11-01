@@ -1,0 +1,173 @@
+@model SIMS.Web.Models.FeatureRequestPageModel
+@using SIMS.Domain.FeatureRequests
+@{
+    ViewData["Title"] = "Đề xuất tính năng";
+
+    string StatusLabel(FeatureRequestStatus status) => status switch
+    {
+        FeatureRequestStatus.InProgress => "Đang xử lý",
+        FeatureRequestStatus.Closed => "Đã đóng",
+        _ => "Đang mở",
+    };
+
+    string StatusBadge(FeatureRequestStatus status) => status switch
+    {
+        FeatureRequestStatus.InProgress => "badge--warn",
+        FeatureRequestStatus.Closed => "badge--neutral",
+        _ => "badge--ok",
+    };
+
+    var open = Model.Items.Count(request => request.Status == FeatureRequestStatus.Open);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Đề xuất tính năng / góp ý</h1>
+        <p class="page-head__sub">@Model.Items.Count đề xuất · @open đang mở</p>
+    </div>
+</header>
+
+<section class="section" style="margin-bottom:16px">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Gửi đề xuất</h2>
+            <p class="section__sub">Mô tả càng cụ thể càng dễ xử lý.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div class="form-grid">
+                @if (Model.IsAdmin && Model.Clubs.Count > 1)
+                {
+                    <div class="form-field">
+                        <label class="form-label" for="fr-club">Phạm vi</label>
+                        <select class="form-select" id="fr-club" name="ClubId">
+                            <option value="">Toàn hệ thống</option>
+                            @foreach (var club in Model.Clubs)
+                            {
+                                if (club.Id == Model.Form.ClubId)
+                                {
+                                    <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@club.Id">@club.Code — @club.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+
+                <div class="form-field @(Model.IsAdmin && Model.Clubs.Count > 1 ? "" : "form-field--full")"
+                     style="@(Model.IsAdmin && Model.Clubs.Count > 1 ? "grid-column:span 2" : null)">
+                    <label class="form-label" for="fr-title">Tiêu đề <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="fr-title" name="Title" placeholder="Tiêu đề đề xuất" required maxlength="200" />
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="fr-content">Nội dung <span class="required-mark" aria-hidden="true">*</span></label>
+                    <textarea class="form-control" id="fr-content" name="Content" rows="3"
+                              placeholder="Nội dung chi tiết" required maxlength="4000"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Gửi đề xuất</button>
+        </div>
+    </form>
+</section>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có đề xuất nào",
+                     Text = "Đề xuất đầu tiên sẽ xuất hiện tại đây sau khi gửi."
+                 })" />
+    </div>
+}
+else
+{
+    <div class="list-stack">
+        @foreach (var request in Model.Items)
+        {
+            var isOwner = string.Equals(request.CreatedBy, User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+            <article class="section notice">
+                <div class="section__head">
+                    <div class="section__titles">
+                        <h2 class="section__title">@request.Title</h2>
+                        <p class="section__sub">
+                            @request.CreatedBy ·
+                            @(request.ClubId is null ? "Toàn hệ thống" :
+                                (Model.ClubNames.TryGetValue(request.ClubId.Value, out var club) ? club : "?")) ·
+                            @request.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    </div>
+                    <span class="badge @StatusBadge(request.Status) badge--dot">@StatusLabel(request.Status)</span>
+                </div>
+
+                <div class="section__body">
+                    <div class="notice__body">@request.Content</div>
+
+                    @if (!string.IsNullOrWhiteSpace(request.Response))
+                    {
+                        <div class="alert alert-info" role="status" style="margin-top:12px;margin-bottom:0">
+                            <p class="alert__title">Phản hồi</p>
+                            @request.Response
+                        </div>
+                    }
+                </div>
+
+                @if (Model.CanManage || (isOwner && request.Status == FeatureRequestStatus.Open))
+                {
+                    <div class="section__foot" style="align-items:flex-end">
+                        @if (Model.CanManage)
+                        {
+                            <form asp-action="Status" asp-route-id="@request.Id" method="post"
+                                  style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;flex:1 1 320px">
+                                @Html.AntiForgeryToken()
+                                <div class="form-field" style="min-width:150px">
+                                    <label class="form-label" for="status-@request.Id">Trạng thái</label>
+                                    <select class="form-select form-select-sm" id="status-@request.Id" name="status">
+                                        @foreach (var value in Enum.GetValues<FeatureRequestStatus>())
+                                        {
+                                            if (value == request.Status)
+                                            {
+                                                <option value="@value" selected>@StatusLabel(value)</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@value">@StatusLabel(value)</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-field" style="flex:1 1 220px">
+                                    <label class="form-label" for="response-@request.Id">Phản hồi</label>
+                                    <input class="form-control form-control-sm" id="response-@request.Id" name="response"
+                                           value="@request.Response" maxlength="2000" />
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Cập nhật</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="muted small">Bạn có thể xoá đề xuất khi còn đang mở.</span>
+                        }
+
+                        <form asp-action="Delete" asp-route-id="@request.Id" method="post"
+                              onsubmit="return confirm('Xoá đề xuất này?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                        </form>
+                    </div>
+                }
+            </article>
+        }
+    </div>
+}

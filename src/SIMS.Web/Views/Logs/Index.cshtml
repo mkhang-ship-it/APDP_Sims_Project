@@ -1,0 +1,102 @@
+@model IReadOnlyList<SIMS.Application.Abstractions.AuditEntry>
+@{
+    ViewData["Title"] = "Nhật ký hệ thống";
+    var actorFilter = ViewData["ActorFilter"]?.ToString();
+    var actionFilter = ViewData["ActionFilter"]?.ToString();
+    var take = ViewData["Take"] ?? 200;
+    var actors = Model.Select(entry => entry.Actor).Where(actor => !string.IsNullOrWhiteSpace(actor))
+        .Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    var actions = Model.Select(entry => entry.Action).Where(action => !string.IsNullOrWhiteSpace(action))
+        .Distinct(StringComparer.OrdinalIgnoreCase).Count();
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Nhật ký hệ thống</h1>
+        <p class="page-head__sub">Hiển thị @Model.Count bản ghi · @actors người thực hiện · @actions loại hành động</p>
+    </div>
+</header>
+
+<form method="get" class="section" style="margin-bottom:16px">
+    <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <div class="form-field" style="min-width:200px">
+            <label class="form-label" for="actor">Người thực hiện</label>
+            <input class="form-control" id="actor" name="actor" value="@actorFilter" placeholder="vd: admin" />
+        </div>
+        <div class="form-field" style="min-width:200px">
+            <label class="form-label" for="actionFilter">Hành động</label>
+            <input class="form-control" id="actionFilter" name="actionFilter" value="@actionFilter" placeholder="vd: invoice" />
+        </div>
+        <div class="form-field" style="min-width:130px">
+            <label class="form-label" for="take">Số dòng</label>
+            <select class="form-select" id="take" name="take">
+                @foreach (var value in new[] { 50, 200, 500 })
+                {
+                    if (Equals(take, value))
+                    {
+                        <option value="@value" selected>@value</option>
+                    }
+                    else
+                    {
+                        <option value="@value">@value</option>
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-outline-secondary">Lọc</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Xoá lọc</a>
+    </div>
+</form>
+
+@if (Model.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Không có bản ghi phù hợp",
+                     Text = "Đổi từ khóa hoặc xoá bộ lọc để xem toàn bộ nhật ký.",
+                     ActionText = "Xoá lọc",
+                     ActionUrl = Url.Action("Index")
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="25">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm trong bản ghi đang hiển thị…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Thời điểm</th>
+                        <th scope="col" data-sort>Người thực hiện</th>
+                        <th scope="col" data-sort>Hành động</th>
+                        <th scope="col">Đối tượng</th>
+                        <th scope="col">Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model)
+                    {
+                        <tr>
+                            <td class="col-num" data-value="@entry.TimestampUtc.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                @entry.TimestampUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                            </td>
+                            <td class="fw-medium">@entry.Actor</td>
+                            <td><code>@entry.Action</code></td>
+                            <td class="muted">@entry.Entity / @entry.EntityId</td>
+                            <td class="muted" style="max-width:380px">@entry.Details</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

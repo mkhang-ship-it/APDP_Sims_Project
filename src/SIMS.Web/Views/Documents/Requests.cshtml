@@ -1,0 +1,187 @@
+@model SIMS.Web.Models.DocumentRequestsPageModel
+@{
+    ViewData["Title"] = "Yêu cầu nộp văn bản";
+    var clubs = ViewData["Clubs"] as IReadOnlyList<SIMS.Web.Models.ClubOption> ?? Array.Empty<SIMS.Web.Models.ClubOption>();
+    var selectedClubId = (Guid)(ViewData["SelectedClubId"] ?? Guid.Empty);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Yêu cầu nộp văn bản</h1>
+        <p class="page-head__sub">@Model.Rows.Count yêu cầu · theo dõi ai đã nộp và còn thiếu.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Danh sách văn bản</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Types">Loại văn bản</a>
+    </div>
+</header>
+
+@if (clubs.Count > 1)
+{
+    <form method="get" asp-action="Requests" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in clubs)
+                    {
+                        if (club.Id == selectedClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Tạo yêu cầu</h2>
+            <p class="section__sub">Chọn loại văn bản, hạn nộp và thành viên cần nộp.</p>
+        </div>
+    </div>
+
+    @if (Model.Types.Count == 0 || Model.Members.Count == 0)
+    {
+        <div class="section__body">
+            <p class="muted mb-0">Cần có loại văn bản và thành viên CLB trước khi tạo yêu cầu.</p>
+        </div>
+    }
+    else
+    {
+        <form asp-action="CreateRequest" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClubId" value="@selectedClubId" />
+            <div class="section__body">
+                <div class="form-grid form-grid--3">
+                    <div class="form-field">
+                        <label class="form-label" for="req-type">Loại văn bản <span class="required-mark" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="req-type" name="DocumentTypeId" required>
+                            @foreach (var type in Model.Types)
+                            {
+                                <option value="@type.Id">@type.Code — @type.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="req-deadline">Hạn nộp <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="req-deadline" name="Deadline" type="date" required
+                               value="@DateTime.Today.AddDays(7).ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+
+                <div style="margin-top:14px">
+                    <span class="form-label">Người nhận</span>
+                    <div class="check-grid">
+                        @foreach (var member in Model.Members)
+                        {
+                            <label class="check-card" for="req-@member.Id">
+                                <input class="form-check-input" type="checkbox" name="UserIds"
+                                       value="@member.Id" id="req-@member.Id" />
+                                <span>
+                                    <span class="check-card__title">@member.DisplayName</span>
+                                    <span class="check-card__meta">@member.Username</span>
+                                </span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Tạo yêu cầu</button>
+            </div>
+        </form>
+    }
+</section>
+
+<section class="section" data-table data-page-size="10">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Yêu cầu đã tạo</h2>
+            <p class="section__sub">Chỉ xoá được yêu cầu khi chưa có ai nộp.</p>
+        </div>
+    </div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có yêu cầu",
+                     Text = "Dùng biểu mẫu phía trên để gửi yêu cầu nộp đầu tiên."
+                 })" />
+    }
+    else
+    {
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo loại, người nhận, người tạo…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Loại văn bản</th>
+                        <th scope="col" data-sort>Hạn nộp</th>
+                        <th scope="col">Người nhận</th>
+                        <th scope="col" data-sort>Người tạo</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            <td class="fw-medium">@(row.Type?.Name ?? "—")</td>
+                            <td class="col-num" data-value="@row.Request.Deadline.ToString("yyyy-MM-dd")">
+                                @row.Request.Deadline.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                <div class="row-inline">
+                                    @foreach (var recipient in row.Recipients)
+                                    {
+                                        if (recipient.IsSubmitted)
+                                        {
+                                            <span class="badge badge--ok">
+                                                @(Model.UserNames.TryGetValue(recipient.UserId, out var name) ? name : "?")
+                                                · đã nộp
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge--neutral">
+                                                @(Model.UserNames.TryGetValue(recipient.UserId, out var name2) ? name2 : "?")
+                                                · chưa nộp
+                                            </span>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                            <td class="muted">@row.Request.RequestedBy</td>
+                            <td class="col-actions">
+                                @if (row.Recipients.All(recipient => !recipient.IsSubmitted))
+                                {
+                                    <form asp-action="DeleteRequest" asp-route-id="@row.Request.Id" method="post"
+                                          class="d-inline" onsubmit="return confirm('Xoá yêu cầu này?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    }
+</section>

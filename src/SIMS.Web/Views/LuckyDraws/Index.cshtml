@@ -1,0 +1,95 @@
+@model SIMS.Web.Models.LuckyDrawPageModel
+@{
+    ViewData["Title"] = "Bốc thăm may mắn";
+    var openCount = Model.Items.Count(row => row.Draw.IsActive && row.Draw.IsOpen(DateTimeOffset.UtcNow));
+    var winners = Model.Items.Sum(row => row.Winners.Count);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Bốc thăm may mắn</h1>
+        <p class="page-head__sub">@Model.Items.Count chương trình · @openCount đang mở · @winners lượt trúng</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-primary btn-sm" asp-action="Create">Tạo chương trình</a>
+    </div>
+</header>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có chương trình bốc thăm",
+                     Text = "Tạo chương trình đầu tiên để bắt đầu quay số.",
+                     ActionText = "Tạo chương trình",
+                     ActionUrl = Url.Action("Create")
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo tên, CLB…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Tên</th>
+                        <th scope="col" data-sort>CLB</th>
+                        <th scope="col" data-sort>Thời gian</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-num" data-sort>Giải</th>
+                        <th scope="col" class="col-num" data-sort>Đã trúng</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Items)
+                    {
+                        var open = row.Draw.IsOpen(DateTimeOffset.UtcNow);
+                        <tr>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@row.Draw.Id" class="fw-medium">@row.Draw.Title</a>
+                            </td>
+                            <td class="muted">@(Model.ClubNames.TryGetValue(row.Draw.ClubId, out var club) ? club : "?")</td>
+                            <td class="col-num">
+                                @row.Draw.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                →
+                                @row.Draw.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td>
+                                @if (!row.Draw.IsActive)
+                                {
+                                    <span class="badge badge--neutral badge--dot">Tạm dừng</span>
+                                }
+                                else if (open)
+                                {
+                                    <span class="badge badge--ok badge--dot">Đang mở</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge--warn badge--dot">Ngoài thời gian</span>
+                                }
+                            </td>
+                            <td class="col-num">@row.Prizes.Count</td>
+                            <td class="col-num">@row.Winners.Count</td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@row.Draw.Id">Quản lý</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="/lucky/@row.Draw.Slug" target="_blank"
+                                   rel="noopener">Trang công khai</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

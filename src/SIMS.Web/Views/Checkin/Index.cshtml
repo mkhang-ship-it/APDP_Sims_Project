@@ -1,0 +1,158 @@
+@{
+    ViewData["Title"] = "Check-in sự kiện";
+    var code = ViewData["Code"] as string ?? string.Empty;
+    var eventTitle = ViewData["EventTitle"] as string;
+    var eventStatus = ViewData["EventStatus"] as string;
+    var eventWindow = ViewData["EventWindow"] as string;
+    var eventVenue = ViewData["EventVenue"] as string;
+    var requiresLocation = ViewData["EventRequiresLocation"] as bool? ?? false;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ</span>
+        <h1>Check-in sự kiện</h1>
+        <p class="page-head__sub">Nhập mã check-in hoặc quét QR do ban tổ chức cung cấp.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Scanner">Quét QR</a>
+    </div>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(eventTitle))
+{
+    <div class="alert alert-info" role="status">
+        <p class="alert__title">@eventTitle</p>
+        <span class="small">@eventWindow · trạng thái: @eventStatus</span>
+        @if (!string.IsNullOrWhiteSpace(eventVenue))
+        {
+            <span class="small d-block">Toạ độ địa điểm: @eventVenue</span>
+        }
+    </div>
+}
+
+@if (requiresLocation)
+{
+    <div class="alert alert-warning" role="alert">
+        <p class="alert__title">Sự kiện có geofence</p>
+        Trình duyệt sẽ gọi vị trí hiện tại và check-in chỉ được chấp nhận trong bán kính 5 km.
+        Hãy bật định vị và cho phép truy cập vị trí.
+    </div>
+}
+
+<div class="grid-2">
+    <section class="section form-panel">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin check-in</h2>
+                <p class="section__sub">Mã nằm trong link hoặc mã QR do ban tổ chức gửi.</p>
+            </div>
+        </div>
+
+        <form asp-action="Index" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="token">Mã check-in <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="token" name="token" value="@code" required
+                               autocomplete="off" placeholder="Ví dụ: A1B2C3D4E5F6" />
+                    </div>
+
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="studentCode">MSSV</label>
+                        <input class="form-control" id="studentCode" name="studentCode" autocomplete="off"
+                               placeholder="Bỏ trống nếu tài khoản đã liên kết hồ sơ" />
+                    </div>
+
+                    <input type="hidden" name="method" value="Manual" />
+                    <input type="hidden" id="latitude" name="latitude" />
+                    <input type="hidden" id="longitude" name="longitude" />
+
+                    <div class="form-field form-field--full">
+                        <div class="form-text" id="geo-status">
+                            Vị trí: chưa lấy được. Bấm "Lấy vị trí" nếu sự kiện yêu cầu geofence.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-outline-secondary" id="geo-button">Lấy vị trí</button>
+                <button type="submit" class="btn btn-primary">Check-in</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Quy trình</h2>
+            </div>
+        </div>
+        <div class="section__body">
+            <ol class="list" style="list-style:none;padding:0;margin:0">
+                <li class="list__item">
+                    <span class="list__main">
+                        <span class="list__title">1. Nhập mã hoặc quét QR</span>
+                        <span class="list__meta">Mã chỉ dùng một lần cho mỗi thành viên.</span>
+                    </span>
+                </li>
+                <li class="list__item">
+                    <span class="list__main">
+                        <span class="list__title">2. Xác thực vị trí nếu cần</span>
+                        <span class="list__meta">Sự kiện có geofence yêu cầu bật định vị trong bán kính 5 km.</span>
+                    </span>
+                </li>
+                <li class="list__item">
+                    <span class="list__main">
+                        <span class="list__title">3. Nhận xác nhận</span>
+                        <span class="list__meta">Kết quả check-in được ghi vào điểm rèn luyện của bạn.</span>
+                    </span>
+                </li>
+            </ol>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var status = document.getElementById('geo-status');
+            var lat = document.getElementById('latitude');
+            var lng = document.getElementById('longitude');
+
+            function setStatus(text) {
+                if (status) { status.textContent = text; }
+            }
+
+            function locate() {
+                if (!navigator.geolocation) {
+                    setStatus('Trình duyệt không hỗ trợ định vị. Hãy dùng trình duyệt khác hoặc nhập mã thủ công.');
+                    return;
+                }
+
+                setStatus('Đang lấy vị trí…');
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        lat.value = position.coords.latitude.toFixed(6);
+                        lng.value = position.coords.longitude.toFixed(6);
+                        setStatus('Vị trí: ' + lat.value + ', ' + lng.value +
+                            ' (±' + Math.round(position.coords.accuracy) + ' m)');
+                    },
+                    function (error) {
+                        setStatus('Không lấy được vị trí: ' + error.message);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+            }
+
+            var button = document.getElementById('geo-button');
+            if (button) { button.addEventListener('click', locate); }
+
+            @if (requiresLocation)
+            {
+                <text>locate();</text>
+            }
+        })();
+    </script>
+}

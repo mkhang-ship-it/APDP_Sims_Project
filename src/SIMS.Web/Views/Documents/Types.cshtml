@@ -1,0 +1,150 @@
+@model IReadOnlyList<SIMS.Domain.Documents.DocumentType>
+@{
+    ViewData["Title"] = "Loại văn bản";
+    var clubs = ViewData["Clubs"] as IReadOnlyList<SIMS.Web.Models.ClubOption> ?? Array.Empty<SIMS.Web.Models.ClubOption>();
+    var selectedClubId = (Guid)(ViewData["SelectedClubId"] ?? Guid.Empty);
+    var isAdmin = (bool)(ViewData["IsAdmin"] ?? false);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Loại văn bản</h1>
+        <p class="page-head__sub">@Model.Count loại · dùng để phân loại và gửi yêu cầu nộp.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Danh sách văn bản</a>
+    </div>
+</header>
+
+@if (isAdmin && clubs.Count > 1)
+{
+    <form method="get" asp-action="Types" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in clubs)
+                    {
+                        if (club.Id == selectedClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thêm loại văn bản</h2>
+            <p class="section__sub">Mã loại được sinh tự động sau khi lưu.</p>
+        </div>
+    </div>
+    <form asp-action="CreateType" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="clubId" value="@selectedClubId" />
+        <div class="section__body">
+            <div class="form-grid form-grid--3">
+                <div class="form-field">
+                    <label class="form-label" for="type-name">Tên loại <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="type-name" name="Name" placeholder="Tên loại văn bản" required maxlength="255" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="type-description">Mô tả</label>
+                    <input class="form-control" id="type-description" name="Description" placeholder="Mô tả" maxlength="1000" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="type-template">Liên kết mẫu</label>
+                    <input class="form-control" id="type-template" name="TemplateUrl" placeholder="Liên kết mẫu (tuỳ chọn)" maxlength="500" />
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Thêm loại văn bản</button>
+        </div>
+    </form>
+</section>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Danh sách loại văn bản</h2>
+            <p class="section__sub">Sửa trực tiếp trên dòng tương ứng.</p>
+        </div>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có loại văn bản",
+                     Text = "Dùng biểu mẫu phía trên để tạo loại văn bản đầu tiên."
+                 })" />
+    }
+    else
+    {
+        <div class="table-shell">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Mã</th>
+                        <th scope="col">Tên</th>
+                        <th scope="col">Mô tả</th>
+                        <th scope="col">Mẫu</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var type in Model)
+                    {
+                        <tr>
+                            <td><code>@type.Code</code></td>
+                            <td class="fw-medium">@type.Name</td>
+                            <td class="muted">@type.Description</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(type.TemplateUrl))
+                                {
+                                    <a href="@type.TemplateUrl" target="_blank" rel="noopener">Mở</a>
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                            <td class="col-actions">
+                                <form asp-action="DeleteType" asp-route-id="@type.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('Xoá loại văn bản này?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" style="background:var(--surface-sunken);padding-top:6px;padding-bottom:6px">
+                                <form asp-action="EditType" asp-route-id="@type.Id" method="post"
+                                      style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,1fr) auto;gap:8px;align-items:center">
+                                    @Html.AntiForgeryToken()
+                                    <input class="form-control form-control-sm" name="Name" value="@type.Name"
+                                           aria-label="Tên loại văn bản" required />
+                                    <input class="form-control form-control-sm" name="Description" value="@type.Description"
+                                           aria-label="Mô tả" />
+                                    <input class="form-control form-control-sm" name="TemplateUrl" value="@type.TemplateUrl"
+                                           aria-label="Liên kết mẫu" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Lưu</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

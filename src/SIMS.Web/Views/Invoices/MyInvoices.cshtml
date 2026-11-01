@@ -1,0 +1,110 @@
+@model SIMS.Web.Models.MyInvoicesPageModel
+@using SIMS.Domain.Finance
+@{
+    ViewData["Title"] = "Hoá đơn của tôi";
+
+    string Label(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => "Đã thanh toán",
+        InvoiceStatus.Overdue => "Quá hạn",
+        _ => "Chờ thanh toán",
+    };
+
+    string BadgeClass(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => "badge--ok",
+        InvoiceStatus.Overdue => "badge--danger",
+        _ => "badge--warn",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính</span>
+        <h1>Hoá đơn của tôi</h1>
+        <p class="page-head__sub">Theo dõi các khoản cần thanh toán và phiếu thu đã phát hành.</p>
+    </div>
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Số hoá đơn</div>
+        <div class="stat__value">@Model.Summary.Total</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Chưa thanh toán</div>
+        <div class="stat__value" style="color:var(--warn)">@Model.Summary.Pending</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã thanh toán</div>
+        <div class="stat__value" style="color:var(--ok)">@Model.Summary.Paid</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Còn phải trả</div>
+        <div class="stat__value" style="color:var(--danger)">@Model.Summary.OutstandingAmount.ToString("N0") đ</div>
+    </div>
+</div>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Bạn chưa có hoá đơn nào",
+                     Text = "Hoá đơn do câu lạc bộ phát hành sẽ xuất hiện tại đây."
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo mã, nội dung, CLB…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Mã</th>
+                        <th scope="col" data-sort>Nội dung</th>
+                        <th scope="col" data-sort>CLB</th>
+                        <th scope="col" class="col-num" data-sort>Tổng</th>
+                        <th scope="col" class="col-num" data-sort>Đã trả</th>
+                        <th scope="col" class="col-num" data-sort>Còn lại</th>
+                        <th scope="col" data-sort>Hạn</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var invoice = item.Row.Invoice;
+                        <tr>
+                            <td><code>@invoice.Code</code></td>
+                            <td class="fw-medium">@invoice.Title</td>
+                            <td>@item.ClubName</td>
+                            <td class="col-num">@invoice.TotalAmount.ToString("N0")</td>
+                            <td class="col-num" style="color:var(--ok)">@item.Row.PaidAmount.ToString("N0")</td>
+                            <td class="col-num" style="color:var(--danger)">@item.Row.Remaining.ToString("N0")</td>
+                            <td class="col-num" data-value="@invoice.DueDate.ToString("yyyy-MM-dd")">
+                                @invoice.DueDate.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                <span class="badge @BadgeClass(invoice.Status) badge--dot">@Label(invoice.Status)</span>
+                            </td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Receipt"
+                                   asp-route-id="@invoice.Id" target="_blank">Xem phiếu</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

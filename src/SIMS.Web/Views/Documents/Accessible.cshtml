@@ -1,0 +1,77 @@
+@model SIMS.Web.Models.DocumentListPageModel
+@using SIMS.Domain.Documents
+@{
+    ViewData["Title"] = "Văn bản được xem";
+
+    string VisibilityLabel(DocumentVisibility visibility) => visibility switch
+    {
+        DocumentVisibility.Public => "Công khai",
+        DocumentVisibility.Restricted => "Giới hạn",
+        _ => "Riêng tư",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Văn bản được xem</h1>
+        <p class="page-head__sub">@Model.Items.Count văn bản công khai hoặc được chia sẻ cho bạn.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="My">Văn bản của tôi</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="MyRequests">Yêu cầu nộp</a>
+    </div>
+</header>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có văn bản được chia sẻ",
+                     Text = "Văn bản công khai hoặc được chia sẻ sẽ xuất hiện tại đây."
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo tiêu đề, loại, người tải…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Tiêu đề</th>
+                        <th scope="col" data-sort>Loại</th>
+                        <th scope="col" data-sort>Người tải</th>
+                        <th scope="col">Hiển thị</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-medium">@item.Document.Title</td>
+                            <td>@(item.Type?.Name ?? "—")</td>
+                            <td class="muted">@item.Document.UploadedBy</td>
+                            <td>
+                                <span class="badge badge--neutral">@VisibilityLabel(item.Document.Visibility)</span>
+                            </td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Download"
+                                   asp-route-id="@item.Document.Id">Tải</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

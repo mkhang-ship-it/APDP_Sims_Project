@@ -1,0 +1,95 @@
+@model SIMS.Web.Models.NotificationPageModel
+@{
+    ViewData["Title"] = "Sửa thông báo";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống / Thông báo</span>
+        <h1>Sửa thông báo</h1>
+        <p class="page-head__sub">Thay đổi nội dung, trạng thái hiển thị và phạm vi gửi.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Nội dung thông báo</h2>
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Title">Tiêu đề <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required maxlength="255" />
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="check-card" for="IsActive">
+                        <input class="form-check-input" type="checkbox" id="IsActive" name="IsActive" value="true"
+                               @(Model.Form.IsActive ? "checked" : null) />
+                        <span>
+                            <span class="check-card__title">Đang hiển thị</span>
+                            <span class="check-card__meta">Tắt để ẩn khỏi hộp thư người dùng.</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Content">Nội dung <span class="required-mark" aria-hidden="true">*</span></label>
+                    <textarea class="form-control" id="Content" name="Content" rows="6"
+                              required maxlength="5000">@Model.Form.Content</textarea>
+                </div>
+            </div>
+
+            @if (Model.IsAdmin)
+            {
+                <div style="margin-top:14px">
+                    <label class="check-card" for="allClubs">
+                        <input class="form-check-input" type="checkbox" name="TargetAllClubs" value="true" id="allClubs"
+                               @(Model.Form.TargetAllClubs ? "checked" : null) />
+                        <span>
+                            <span class="check-card__title">Gửi tất cả CLB</span>
+                            <span class="check-card__meta">Bỏ chọn để giới hạn theo danh sách bên dưới.</span>
+                        </span>
+                    </label>
+
+                    <div class="check-grid" style="margin-top:10px">
+                        @foreach (var club in Model.Clubs)
+                        {
+                            <label class="check-card" for="club-@club.Id">
+                                <input class="form-check-input" type="checkbox" name="ClubIds" value="@club.Id"
+                                       id="club-@club.Id" @(Model.Form.ClubIds.Contains(club.Id) ? "checked" : null) />
+                                <span>
+                                    <span class="check-card__title">@club.Name</span>
+                                    <span class="check-card__meta">@club.Code</span>
+                                </span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p class="muted" style="margin-top:12px">Thông báo sẽ được gửi cho CLB hiện tại của bạn.</p>
+            }
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,27 @@
+@model SIMS.Web.Models.TableToolbarModel
+<div class="toolbar">
+    <label class="search-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" stroke-linecap="round" />
+        </svg>
+        <input type="search" class="form-control form-control-sm" data-table-search
+               placeholder="@Model.Placeholder" aria-label="@Model.Placeholder"
+               autocomplete="off" spellcheck="false" />
+    </label>
+    <span class="toolbar__spacer"></span>
+    <select class="form-select form-select-sm" data-table-size
+            aria-label="Số dòng mỗi trang" style="width:auto">
+        @foreach (var size in new[] { 10, 25, 50 })
+        {
+            if (size == Model.PageSize)
+            {
+                <option value="@size" selected>@size / trang</option>
+            }
+            else
+            {
+                <option value="@size">@size / trang</option>
+            }
+        }
+    </select>
+</div>

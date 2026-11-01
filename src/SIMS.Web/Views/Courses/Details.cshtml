@@ -1,0 +1,75 @@
+@model SIMS.Domain.Courses.Course
+@{
+    ViewData["Title"] = "Chi tiết học phần";
+    var isOpen = Model.Status == SIMS.Domain.Courses.CourseStatus.Active;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Học phần</span>
+        <h1>@Model.Title</h1>
+        <p class="page-head__sub"><code>@Model.Code</code> · sức chứa <span class="tnum">@Model.Capacity</span></p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+        <a class="btn btn-primary btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Sửa học phần</a>
+    </div>
+</header>
+
+<div class="detail-grid">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin học phần</h2>
+            </div>
+            @if (isOpen)
+            {
+                <span class="badge badge--ok badge--dot">Đang mở</span>
+            }
+            else
+            {
+                <span class="badge badge--neutral badge--dot">Đã đóng</span>
+            }
+        </div>
+        <div class="section__body">
+            <dl class="detail-list">
+                <div>
+                    <dt>Mã học phần</dt>
+                    <dd><code>@Model.Code</code></dd>
+                </div>
+                <div>
+                    <dt>Tên</dt>
+                    <dd>@Model.Title</dd>
+                </div>
+                <div>
+                    <dt>Sức chứa</dt>
+                    <dd class="tnum">@Model.Capacity</dd>
+                </div>
+                <div>
+                    <dt>Tiên quyết</dt>
+                    <dd>@(Model.PrerequisiteCode ?? "—")</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Trạng thái</h2>
+            </div>
+        </div>
+        <div class="section__body">
+            <dl class="meta-list">
+                <div>
+                    <dt>Hiển thị</dt>
+                    <dd>@(isOpen ? "Đang mở đăng ký" : "Đã đóng")</dd>
+                </div>
+                <div>
+                    <dt>Mã định danh</dt>
+                    <dd><code class="small">@Model.Id</code></dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+</div>

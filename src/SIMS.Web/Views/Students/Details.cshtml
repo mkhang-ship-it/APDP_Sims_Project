@@ -1,0 +1,88 @@
+@model SIMS.Domain.Students.Student
+@{
+    ViewData["Title"] = "Chi tiết sinh viên";
+    var isActive = Model.Status == SIMS.Domain.Students.StudentStatus.Active;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Sinh viên</span>
+        <h1>@Model.FullName</h1>
+        <p class="page-head__sub"><code>@Model.StudentCode</code> · @Model.Program</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+        <a class="btn btn-primary btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Sửa hồ sơ</a>
+    </div>
+</header>
+
+<div class="detail-grid">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin cá nhân</h2>
+                <p class="section__sub">Dữ liệu gốc dùng cho học vụ và học phần.</p>
+            </div>
+            @if (isActive)
+            {
+                <span class="badge badge--ok badge--dot">Đang học</span>
+            }
+            else
+            {
+                <span class="badge badge--neutral badge--dot">Ngừng</span>
+            }
+        </div>
+        <div class="section__body">
+            <dl class="detail-list">
+                <div>
+                    <dt>MSSV</dt>
+                    <dd><code>@Model.StudentCode</code></dd>
+                </div>
+                <div>
+                    <dt>Họ tên</dt>
+                    <dd>@Model.FullName</dd>
+                </div>
+                <div>
+                    <dt>Email</dt>
+                    <dd>@Model.Email</dd>
+                </div>
+                <div>
+                    <dt>Ngày sinh</dt>
+                    <dd>@Model.DateOfBirth.ToString("dd/MM/yyyy")</dd>
+                </div>
+                <div class="detail-list__full">
+                    <dt>Chương trình</dt>
+                    <dd>@Model.Program</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Bản ghi</h2>
+            </div>
+        </div>
+        <div class="section__body">
+            <dl class="meta-list">
+                <div>
+                    <dt>Trạng thái</dt>
+                    <dd>@(isActive ? "Đang học" : "Ngừng")</dd>
+                </div>
+                <div>
+                    <dt>Ngày tạo</dt>
+                    <dd>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </div>
+                <div>
+                    <dt>Mã định danh</dt>
+                    <dd><code class="small">@Model.Id</code></dd>
+                </div>
+            </dl>
+        </div>
+        <div class="section__foot">
+            <span>Chỉnh sửa gần nhất khi lưu hồ sơ</span>
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Sửa</a>
+        </div>
+    </section>
+</div>

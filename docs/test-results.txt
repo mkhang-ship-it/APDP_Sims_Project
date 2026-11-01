@@ -1,0 +1,217 @@
+# Output thật — `dotnet build SIMS.sln -warnaserror`
+
+```
+  SIMS.Domain -> C:\Users\ADMIN\orca\workspaces\tezonew\SIMS-dotnet\src\SIMS.Domain\bin\Debug\net8.0\SIMS.Domain.dll
+  SIMS.Application -> C:\Users\ADMIN\orca\workspaces\tezonew\SIMS-dotnet\src\SIMS.Application\bin\Debug\net8.0\SIMS.Application.dll
+  SIMS.Infrastructure -> C:\Users\ADMIN\orca\workspaces\tezonew\SIMS-dotnet\src\SIMS.Infrastructure\bin\Debug\net8.0\SIMS.Infrastructure.dll
+  SIMS.Web -> C:\Users\ADMIN\orca\workspaces\tezonew\SIMS-dotnet\src\SIMS.Web\bin\Debug\net8.0\SIMS.Web.dll
+  SIMS.Tests -> C:\Users\ADMIN\orca\workspaces\tezonew\SIMS-dotnet\tests\SIMS.Tests\bin\Debug\net8.0\SIMS.Tests.dll
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+```
+
+# Output thật — `dotnet test SIMS.sln`
+
+```
+VSTest version 17.11.1 (x64)
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Passed!  - Failed:     0, Passed:   405, Skipped:     0, Total:   405, Duration: 4 s - SIMS.Tests.dll (net8.0)
+```
+
+| Suite | Passed | Total |
+|---|---|---|
+| Domain | 98 | 98 |
+| Application | 155 | 155 |
+| Infrastructure | 84 | 84 |
+| Architecture | 3 | 3 |
+| Web | 65 | 65 |
+
+Tổng: **405 passed** — 0 failed, 0 skipped (trước hardening SQL: 395; +10 test mới).
+
+`dotnet test` chạy ở chế độ **CSV** trong thư mục tạm (factory ép `Storage:Provider=Csv`), nên suite
+không phụ thuộc SQL Server. Các test của `SqlRowStoreTests` tự bỏ qua khi máy không kết nối được engine,
+và chạy thật ở máy có SQL Server:
+
+```
+dotnet test tests\SIMS.Tests --filter "FullyQualifiedName~SqlRowStoreTests"
+Passed!  - Failed: 0, Passed: 15, Skipped: 0, Total: 15, Duration: 307 ms
+```
+
+15 test này gồm: append/read, mutate (đổi + từ chối), factory (mặc định SQL, thiếu connection string, nhánh CSV),
+6 tên bảng độc hại bị chặn, 3 tên bảng hợp lệ, và `Concurrent_appends_do_not_mix_cells`
+(8 luồng append song song → mỗi bản ghi chỉ chứa ô của chính nó).
+
+## Test concurrent — bằng chứng race DDL đã chết
+
+Test `Concurrent_appends_do_not_mix_cells` **bắt được lỗi thật** ở lần chạy đầu sau khi thêm nó:
+
+```
+Failed!  - Failed: 1, Passed: 404, Total: 405
+Microsoft.Data.SqlClient.SqlException: The operation failed because an index or statistics with name
+'IX_t_2db77f7cbc88_RowOrd' already exists on table 't_2db77f7cbc88'.
+   at SIMS.Infrastructure.Persistence.SqlRowStore.EnsureTableAsync(...)
+```
+
+Nguyên nhân: hai request đồng thời cùng thấy `IF NOT EXISTS (…sys.indexes…)` là đúng rồi cùng
+`CREATE UNIQUE INDEX`. Vá bằng `sp_getapplock` (owner `Session`) bọc toàn bộ DDL theo bảng + `TRY/CATCH`
+bỏ qua đúng lỗi 1913 (index trùng tên). Sau khi vá, chạy lặp 10 vòng:
+
+```
+vong lap: 10, that bai: 0
+```
+
+# Smoke thật trên SQL Server (engine chính)
+
+App chạy `dotnet run --project src/SIMS.Web --urls http://localhost:5199`, `Storage:Provider=SqlServer`
+(DB `SIMS`, Windows auth), đăng nhập `admin/Admin@12345`.
+
+```
+health 200
+SMOKE: 22/22 = 200
+phu 200 /Events/Details/a712f28d-56b7-458b-9b44-40e813f8714b
+phu 200 /EventPlans?eventId=a712f28d-56b7-458b-9b44-40e813f8714b
+```
+
+Danh sách route (đều 200): `/`, `/Students`, `/Clubs`, `/Events`, `/Awards`, `/Disciplines`, `/Documents`,
+`/Documents/Types`, `/Documents/Requests`, `/Expenses`, `/Invoices`, `/LuckyDraws`, `/Notifications`,
+`/FeatureRequests`, `/ShortUrls`, `/Settings`, `/Enrolments`, `/Courses`, `/Profile`, `/Logs`, `/MyLearning`,
+`/Checkin`, cộng `/Health`.
+
+## Kiểm schema + dữ liệu thật trong `[sims]`
+
+```
+36 bang sims, 36 co unique index RowOrd
+students 20 dong (2 sinh vien x 10 o), users 24 dong (3 tai khoan x 8 o)
+```
+
+Dữ liệu ghi qua UI vẫn đọc đúng sau khi thêm index (bản ghi `SV9001` do test smoke tạo):
+
+```
+1|o0|f3099b64-a450-4d6b-b206-9ea4bc0a5ce5
+1|o1|SV9001
+1|o2|Kiem Tra SQL
+1|o3|sv9001@example.com
+1|o4|2003-05-06
+1|o5|CNTT
+1|o6|Active
+1|o7|
+1|o8|a99c0e54-d2a3-4c17-a398-20e2b8c4f84d
+1|o9|2026-10-31T19:28:51.5787810+00:00
+```
+
+DDL index chạy độc lập (bảng trắng, tạo tay):
+
+```
+IX_probe_index_RowOrd unique=1
+```
+
+Ngày chạy: 2026-11-01 (giờ máy). Công cụ: .NET SDK 8, xUnit 2.5.3, SQL Server 2019
+15.0.2000.5 (Developer, Windows auth, DB `SIMS`).
+
+# UI vòng 1 (V1) — token + app shell + dashboard + light/dark
+
+Chạy sau khi thay `site.css`, thêm `theme.css`, viết lại `_Layout.cshtml`, `Home/Index.cshtml`,
+`wwwroot/js/site.js` và mở rộng `DashboardSummary` (thêm CLB + sự kiện sắp tới).
+
+Build + test lại từ đầu (app đã tắt để không khoá DLL):
+
+```
+$ dotnet build SIMS.sln -warnaserror
+  SIMS.Domain -> ...\bin\Debug\net8.0\SIMS.Domain.dll
+  SIMS.Application -> ...\SIMS.Application.dll
+  SIMS.Infrastructure -> ...\SIMS.Infrastructure.dll
+  SIMS.Web -> ...\SIMS.Web.dll
+  SIMS.Tests -> ...\SIMS.Tests.dll
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+$ dotnet test SIMS.sln
+Passed!  - Failed:     0, Passed:   405, Skipped:     0, Total:   405, Duration: 4 s - SIMS.Tests.dll (net8.0)
+```
+
+Smoke route thật trên app đang chạy (`http://localhost:5199`, SQL Server, đăng nhập `admin`),
+mỗi route kiểm cả HTTP 200 **và** có `.app-shell` (tức là đi qua layout mới):
+
+```
+health 200
+SMOKE 26/27
+FAIL /health=200 shell=false     ← /health trả text thuần, không dùng layout (đúng thiết kế)
+```
+
+26 trang đã kiểm: `/`, `/Students`, `/Courses`, `/Enrolments`, `/Clubs`, `/Events`, `/Awards`,
+`/Disciplines`, `/Documents`, `/Documents/Types`, `/Documents/Requests`, `/Expenses`, `/Invoices`,
+`/Invoices/MyInvoices`, `/Expenses/MyExpenses`, `/LuckyDraws`, `/Notifications`, `/FeatureRequests`,
+`/ShortUrls`, `/Settings`, `/Settings/Club`, `/Profile`, `/Logs`, `/MyLearning`, `/Checkin`,
+`/Events/Calendar`.
+
+Probe giao diện bằng Playwright (Chromium, `playwright-core`), 18 ảnh × 3 breakpoint × 2 theme
++ 2 ảnh trạng thái:
+
+```
+PALETTE {"bg":"#f8f9fa","surface":"#ffffff","text":"#1a1e24","textSecondary":"#545c69","accent":"#f26522"}
+FOCUS   {"tag":"A","cls":"btn btn-sm btn-outline-secondary","outline":"2px solid rgb(242, 101, 34)"}
+CMDK    open=true results=["Sinh viên"]
+MOBILE_SIDEBAR {"open":true,"expanded":"true"}
+NO_RUNTIME_ERRORS
+```
+
+`NO_RUNTIME_ERRORS` = không có `pageerror` và không có `console.error` (bỏ qua lỗi tải Google Fonts)
+trên cả 18 lần chụp.
+
+Bằng chứng ảnh: `docs/screens/v1-{desktop,tablet,mobile}-{light,dark}-{dashboard,students,events}.png`
+(cộng `v1-desktop-light-cmdk.png`, `v1-mobile-light-sidebar.png`) — 20 tệp.
+
+## Lỗi thật bắt được trong vòng V1
+
+| Triệu chứng | Nguyên nhân | Vá |
+|---|---|---|
+| Nhãn nhóm sidebar ra `b-khzur36duvHỌC VỤ` | `@:` trong khối `foreach` Razor sinh mã định danh lạ khi dòng vừa có markup vừa có `@item.Label` | Bỏ `@:`, gom nhóm bằng LINQ rồi render `<div class="nav-group">` bình thường |
+| Chữ bảng đen trên nền tối (không đọc được) | Bootstrap **5.1** không có `--bs-table-*` (chỉ từ 5.2) → biến tự đặt không có tác dụng | Set `color`/`border-bottom` trực tiếp trên `.table` |
+| Nút primary vẫn xanh `#0d6efd` dù `--accent: #f26522` | Bootstrap 5.1 cũng **không** có `--bs-btn-*` | Viết lại toàn bộ `.btn-*` bằng thuộc tính trực tiếp |
+| Mọi màu nhấn thành xanh | `site.primary_color` trong DB là `#0d6efd` và layout phát nó đè `--accent` | Chỉ override khi giá trị khác mặc định cũ `#0d6efd` |
+| Focus ring của nút/liên kết không hiện | Bootstrap `.btn:focus` đặt `box-shadow`, đè `:focus-visible` | `theme.css` đặt `outline: 2px solid var(--accent)` cho `.btn:focus-visible` |
+| Mobile: tiêu đề trang module bị bóp thành cột chữ, nút chen ngang | Header cũ dùng `.d-flex.justify-content-between` không có `flex-wrap` | `@media (max-width: 720px)` cho header cũ xếp dọc (V2 sẽ thay bằng `.page-head`) |
+
+## Vòng V2 + V3 — redesign toàn bộ view + polish (2026-11-01)
+
+Tất cả view Razor đã chuyển sang shell + component V2 (`.section`, `.toolbar`, `.table-shell`,
+`.pager`, badge variants, `.form-grid`, `.detail-list`, `.stat-grid`, `.notice`, `.auth`,
+`.state-page`, `.public-hero`). Bảng có lọc/sắp xếp/phân trang khai báo qua `[data-table]`.
+
+```
+$ dotnet build SIMS.sln -warnaserror
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+$ dotnet test SIMS.sln --no-build
+Passed!  - Failed:     0, Passed:   405, Skipped:     0, Total:   405, Duration: 3 s - SIMS.Tests.dll (net8.0)
+```
+
+Smoke lại 27 endpoint trên app chạy SQL Server: `SMOKE 26/27`; dòng `FAIL` duy nhất là
+`/health` (cố ý — endpoint trả text thuần, không `.app-shell`). Tức 27/27 HTTP sống.
+
+Probe Playwright vòng V2/V3 (`v3-shots.mjs`, `v3-probe.mjs`, `v3-final2.mjs`):
+
+```
+MOBILE_OVERFLOW_PX=0                    ← 390px không tràn ngang
+FOCUS A.app-brand outline=2px solid     ← focus ring thấy rõ
+SKIPLINK_AFTER_TRANSITION top=8 focus=true
+rows=2 filtered=1 count="1 / 2 mục" sort "SV0001" -> "SV0001" errs=0   ← lọc + đếm + sort trên /Students
+EVENTPLANS 200                          ← /EventPlans/Index?eventId=...
+NO_RUNTIME_ERRORS                       ← 0 pageerror/console.error toàn bộ lượt chụp
+```
+
+Hai 404 trong log ảnh là `favicon.ico` và id GUID mẫu trong script (không phải lỗi app);
+đã chụp lại bằng id thật (`v2-desktop-light-student-details.png`, `v2-desktop-light-eventplans.png`).
+
+Bằng chứng ảnh V2/V3: `docs/screens/v2-*.png` + `v3-*.png` — 44 tệp
+(desktop light 26 module, desktop dark 6, mobile 390px 5, public home/login/lucky-draw 5,
+403 state, skip-link, students filtered).
+
+Vá V3: skip-link đổi từ inline style + onfocus/onblur sang class `.skip-link` trong `site.css`
+(transition + `:focus` outline); `Home/Index.cshtml` bỏ `table-responsive` inline style cuối
+cùng, dùng `.table-shell` chuẩn.

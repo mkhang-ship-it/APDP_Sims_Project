@@ -1,0 +1,132 @@
+@model SIMS.Web.Models.InvoiceCreatePageModel
+@{
+    ViewData["Title"] = "Tạo hoá đơn";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính / Hoá đơn</span>
+        <h1>Tạo hoá đơn</h1>
+        <p class="page-head__sub">Chọn thành viên nhận hoá đơn và nhập số tiền cần thu.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+@if (Model.IsAdmin && Model.Clubs.Count > 1)
+{
+    <form method="get" asp-action="Create" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in Model.Clubs)
+                    {
+                        if (club.Id == Model.Form.ClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline-secondary">Đổi CLB</button>
+        </div>
+    </form>
+}
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin hoá đơn</h2>
+            <p class="section__sub">Số tiền và hạn thanh toán được kiểm tra lại ở máy chủ khi lưu.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ClubId" value="@Model.Form.ClubId" />
+
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Title">Tên hoá đơn <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Title")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="TotalAmount">Số tiền (đ) <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="TotalAmount" name="TotalAmount" type="number" min="0" step="1000"
+                           value="@Model.Form.TotalAmount" required />
+                    <span class="text-danger small">@Html.ValidationMessage("TotalAmount")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="DueDate">Hạn thanh toán <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="DueDate" name="DueDate" type="date"
+                           value="@Model.Form.DueDate.ToString("yyyy-MM-dd")" required />
+                    <span class="text-danger small">@Html.ValidationMessage("DueDate")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Period">Kỳ thu</label>
+                    <input class="form-control" id="Period" name="Period" value="@Model.Form.Period" placeholder="HK1 2026-2027" />
+                    <span class="text-danger small">@Html.ValidationMessage("Period")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Note">Ghi chú</label>
+                    <input class="form-control" id="Note" name="Note" value="@Model.Form.Note" />
+                    <span class="text-danger small">@Html.ValidationMessage("Note")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section__head" style="border-top:1px solid var(--border);border-bottom:0">
+            <div class="section__titles">
+                <h2 class="section__title">Thành viên nhận hoá đơn (@Model.Members.Count)</h2>
+                <p class="section__sub">Chọn một hoặc nhiều thành viên đang hoạt động.</p>
+            </div>
+        </div>
+
+        <div class="section__body">
+            @if (Model.Members.Count == 0)
+            {
+                <p class="muted mb-0">CLB chưa có thành viên đang hoạt động.</p>
+            }
+            else
+            {
+                <div class="check-grid">
+                    @foreach (var member in Model.Members)
+                    {
+                        <label class="check-card" for="member-@member.Id">
+                            <input class="form-check-input" type="checkbox" name="MemberIds" value="@member.Id"
+                                   id="member-@member.Id" @(Model.Form.MemberIds.Contains(member.Id) ? "checked" : null) />
+                            <span>
+                                <span class="check-card__title">@member.DisplayName</span>
+                                <span class="check-card__meta">@member.Username</span>
+                            </span>
+                        </label>
+                    }
+                </div>
+            }
+            <span class="text-danger small">@Html.ValidationMessage("MemberIds")</span>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Tạo hoá đơn</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

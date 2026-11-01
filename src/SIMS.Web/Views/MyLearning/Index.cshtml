@@ -1,0 +1,119 @@
+@model SIMS.Application.Learning.MyLearningView
+@{
+    ViewData["Title"] = "Học tập của tôi";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ</span>
+        <h1>Học tập của tôi</h1>
+        <p class="page-head__sub">Hồ sơ sinh viên và các học phần đã đăng ký.</p>
+    </div>
+</header>
+
+@if (Model.Student is null)
+{
+    <div class="alert alert-warning" role="alert">
+        <p class="alert__title">Chưa liên kết hồ sơ</p>
+        Tài khoản chưa được liên kết với hồ sơ sinh viên. Vui lòng liên hệ quản trị viên.
+    </div>
+}
+else
+{
+    <section class="section" style="margin-bottom:16px">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">@Model.Student.FullName</h2>
+                <p class="section__sub"><code>@Model.Student.StudentCode</code> · @Model.Student.Program</p>
+            </div>
+        </div>
+        <div class="section__body">
+            <dl class="detail-list">
+                <div>
+                    <dt>MSSV</dt>
+                    <dd><code>@Model.Student.StudentCode</code></dd>
+                </div>
+                <div>
+                    <dt>Họ tên</dt>
+                    <dd>@Model.Student.FullName</dd>
+                </div>
+                <div>
+                    <dt>Email</dt>
+                    <dd>@Model.Student.Email</dd>
+                </div>
+                <div>
+                    <dt>Chương trình</dt>
+                    <dd>@Model.Student.Program</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Học phần đã đăng ký</h2>
+                <p class="section__sub">@Model.Enrolments.Count học phần</p>
+            </div>
+        </div>
+
+        @if (Model.Enrolments.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyStateModel
+                     {
+                         Title = "Chưa có đăng ký học phần nào",
+                         Text = "Liên hệ phòng học vụ nếu bạn cần đăng ký học phần."
+                     })" />
+        }
+        else
+        {
+            <div class="table-shell">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col" data-sort>Mã</th>
+                            <th scope="col" data-sort>Học phần</th>
+                            <th scope="col" data-sort>Trạng thái</th>
+                            <th scope="col" class="col-actions" data-sort>Điểm</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var enrolment in Model.Enrolments)
+                        {
+                            var course = Model.Courses.FirstOrDefault(c => c.Id == enrolment.CourseId);
+                            <tr>
+                                <td><code>@(course?.Code ?? "?")</code></td>
+                                <td class="fw-medium">@(course?.Title ?? "(không tìm thấy)")</td>
+                                <td>
+                                    @switch (enrolment.Status)
+                                    {
+                                        case SIMS.Domain.Enrolments.EnrolmentStatus.Active:
+                                            <span class="badge badge--ok badge--dot">Đang học</span>
+                                            break;
+                                        case SIMS.Domain.Enrolments.EnrolmentStatus.Completed:
+                                            <span class="badge badge--accent badge--dot">Hoàn thành</span>
+                                            break;
+                                        default:
+                                            <span class="badge badge--neutral badge--dot">Đã huỷ</span>
+                                            break;
+                                    }
+                                </td>
+                                <td class="col-actions">
+                                    @if (enrolment.HasGrade)
+                                    {
+                                        <span class="fw-semibold tnum">@enrolment.Score</span>
+                                        <span class="badge badge--neutral ms-1">@enrolment.GradeLetter</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}

@@ -1,0 +1,157 @@
+@model SIMS.Web.Models.ShortUrlPageModel
+@{
+    ViewData["Title"] = "Link rút gọn";
+    var active = Model.Items.Count(row => row.ShortUrl.IsActive);
+    var visits = Model.Items.Sum(row => row.VisitCount);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Link rút gọn</h1>
+        <p class="page-head__sub">@Model.Items.Count liên kết · @active đang bật · @visits lượt truy cập</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Tạo liên kết</h2>
+            <p class="section__sub">Liên kết rút gọn dùng đường dẫn <code>/s/&lt;mã&gt;</code>.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div class="form-grid">
+                @if (Model.IsAdmin && Model.Clubs.Count > 1)
+                {
+                    <div class="form-field">
+                        <label class="form-label" for="su-club">Câu lạc bộ</label>
+                        <select class="form-select" id="su-club" name="ClubId">
+                            @foreach (var club in Model.Clubs)
+                            {
+                                if (club.Id == Model.Form.ClubId)
+                                {
+                                    <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@club.Id">@club.Code — @club.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" name="ClubId" value="@Model.Form.ClubId" />
+                }
+
+                <div class="form-field" style="grid-column:span 2">
+                    <label class="form-label" for="su-target">Đích đến <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="su-target" name="TargetUrl" placeholder="https://..." required maxlength="2000" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="su-title">Tiêu đề</label>
+                    <input class="form-control" id="su-title" name="Title" placeholder="Tuỳ chọn" maxlength="255" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="su-expires">Hết hạn</label>
+                    <input class="form-control" id="su-expires" name="ExpiresAt" type="datetime-local" />
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Tạo liên kết</button>
+        </div>
+    </form>
+</section>
+
+<section class="section" data-table data-page-size="10">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Danh sách liên kết</h2>
+            <p class="section__sub">Tạm dừng hoặc xoá liên kết không còn dùng.</p>
+        </div>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có liên kết rút gọn",
+                     Text = "Dùng biểu mẫu phía trên để tạo liên kết đầu tiên."
+                 })" />
+    }
+    else
+    {
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo mã, đích đến, tiêu đề…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Mã</th>
+                        <th scope="col" data-sort>Đích đến</th>
+                        <th scope="col" data-sort>Tiêu đề</th>
+                        <th scope="col" class="col-num" data-sort>Lượt</th>
+                        <th scope="col" data-sort>Hết hạn</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Items)
+                    {
+                        var url = row.ShortUrl;
+                        <tr>
+                            <td>
+                                <a href="/s/@url.Code" target="_blank" rel="noopener"><code>/s/@url.Code</code></a>
+                            </td>
+                            <td class="muted" style="max-width:320px">@url.TargetUrl</td>
+                            <td>@url.Title</td>
+                            <td class="col-num">@row.VisitCount</td>
+                            <td class="col-num" data-value="@(url.ExpiresAtUtc?.ToString("yyyy-MM-ddTHH:mm") ?? "")">
+                                @(url.ExpiresAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")
+                            </td>
+                            <td>
+                                @if (url.IsActive)
+                                {
+                                    <span class="badge badge--ok badge--dot">Đang bật</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge--neutral badge--dot">Tạm dừng</span>
+                                }
+                            </td>
+                            <td class="col-actions">
+                                <form asp-action="Toggle" asp-route-id="@url.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="isActive" value="@(url.IsActive ? "false" : "true")" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        @(url.IsActive ? "Tạm dừng" : "Bật")
+                                    </button>
+                                </form>
+                                <form asp-action="Delete" asp-route-id="@url.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('Xoá liên kết này?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    }
+</section>

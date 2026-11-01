@@ -1,0 +1,37 @@
+@model SIMS.Web.Models.CourseFormModel
+@{
+    ViewData["Title"] = "Thêm học phần";
+    ViewData["IsEdit"] = false;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Học phần</span>
+        <h1>Thêm học phần</h1>
+        <p class="page-head__sub">Mã học phần là duy nhất và không thể đổi sau khi tạo.</p>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin học phần</h2>
+            <p class="section__sub">Sức chứa tối đa 200 sinh viên mỗi học phần.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <partial name="_Form" model="Model" />
+        </div>
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu học phần</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

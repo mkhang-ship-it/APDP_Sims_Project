@@ -1,0 +1,95 @@
+@model SIMS.Web.Models.SettingsPageModel
+@using SIMS.Application.Settings
+@{
+    ViewData["Title"] = "Cài đặt CLB";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Cài đặt CLB</h1>
+        <p class="page-head__sub">@Model.ClubName · thông tin liên hệ và tài khoản nhận thanh toán.</p>
+    </div>
+    <div class="page-head__actions">
+        @if (Model.IsAdmin)
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Global">Cài đặt hệ thống</a>
+        }
+    </div>
+</header>
+
+@if (Model.IsAdmin && Model.Clubs.Count > 1)
+{
+    <form method="get" asp-action="Club" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in Model.Clubs)
+                    {
+                        if (club.Id == Model.ClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin câu lạc bộ</h2>
+            <p class="section__sub">Dùng cho liên hệ nội bộ và in trên phiếu thu.</p>
+        </div>
+    </div>
+
+    <form asp-action="Club" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="clubId" value="@Model.ClubId" />
+
+        <div class="section__body">
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-label" for="contactEmail">Email liên hệ</label>
+                    <input class="form-control" id="contactEmail" type="email" name="@SettingKeys.ClubContactEmail"
+                           value="@Model.Value(SettingKeys.ClubContactEmail)" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="contactPhone">Điện thoại</label>
+                    <input class="form-control" id="contactPhone" name="@SettingKeys.ClubContactPhone"
+                           value="@Model.Value(SettingKeys.ClubContactPhone)" />
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="address">Địa chỉ</label>
+                    <input class="form-control" id="address" name="@SettingKeys.ClubAddress"
+                           value="@Model.Value(SettingKeys.ClubAddress)" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="bank">Ngân hàng</label>
+                    <input class="form-control" id="bank" name="@SettingKeys.ClubInvoiceBank"
+                           value="@Model.Value(SettingKeys.ClubInvoiceBank)" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="bankAccount">Số tài khoản</label>
+                    <input class="form-control" id="bankAccount" name="@SettingKeys.ClubInvoiceBankAccount"
+                           value="@Model.Value(SettingKeys.ClubInvoiceBankAccount)" />
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Lưu cấu hình CLB</button>
+        </div>
+    </form>
+</section>

@@ -1,0 +1,59 @@
+@model SIMS.Web.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="auth">
+    <section class="auth__brand" aria-hidden="true">
+        <span class="auth__mark">S</span>
+        <h2 class="auth__headline">Quản lý câu lạc bộ, gọn trong một nơi.</h2>
+        <p class="auth__text">
+            Điểm danh, học vụ, hoá đơn, văn bản và khen thưởng — tất cả trong một giao diện thống nhất.
+        </p>
+    </section>
+
+    <section class="auth__panel">
+        <div class="auth__panel-inner">
+            <span class="eyebrow">SIMS</span>
+            <h1 class="auth__title">Đăng nhập SIMS</h1>
+            <p class="auth__sub">Dùng tài khoản do quản trị viên cấp.</p>
+
+            <form asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="form-field" style="margin-bottom:12px">
+                    <label asp-for="Username" class="form-label"></label>
+                    <input asp-for="Username" class="form-control" autocomplete="username" autofocus />
+                    <span asp-validation-for="Username" class="text-danger small"></span>
+                </div>
+
+                <div class="form-field" style="margin-bottom:12px">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <label class="check-card" for="RememberMe" style="margin-bottom:14px">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <span>
+                        <span class="check-card__title">Ghi nhớ đăng nhập</span>
+                        <span class="check-card__meta">Không dùng trên máy tính công cộng.</span>
+                    </span>
+                </label>
+
+                <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+            </form>
+
+            <p class="muted small" style="margin:16px 0 0">
+                Tài khoản demo: <code>admin</code> / <code>Admin@@12345</code>
+            </p>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

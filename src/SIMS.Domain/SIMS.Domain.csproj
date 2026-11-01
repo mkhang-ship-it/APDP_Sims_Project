@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SIMS.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Domain không được phụ thuộc hạ tầng: bỏ các implicit using IO/HTTP.
+       ImplicitUsings vẫn bật cho phần còn lại (System, System.Linq, ...). -->
+  <ItemGroup>
+    <Using Remove="System.IO" />
+    <Using Remove="System.Net.Http" />
+  </ItemGroup>
+
+</Project>

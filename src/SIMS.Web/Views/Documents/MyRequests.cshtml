@@ -1,0 +1,115 @@
+@model SIMS.Web.Models.MyDocumentRequestsPageModel
+@using SIMS.Domain.Documents
+@{
+    ViewData["Title"] = "Yêu cầu nộp của tôi";
+
+    var submitted = Model.Items.Count(item => item.Assignment.IsSubmitted);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Yêu cầu nộp của tôi</h1>
+        <p class="page-head__sub">@Model.Items.Count yêu cầu · @submitted đã nộp</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="My">Văn bản của tôi</a>
+    </div>
+</header>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Bạn không có yêu cầu nộp văn bản nào",
+                     Text = "Yêu cầu do câu lạc bộ gửi sẽ xuất hiện tại đây."
+                 })" />
+    </div>
+}
+else
+{
+    <div class="grid-2">
+        @foreach (var item in Model.Items)
+        {
+            <section class="section">
+                <div class="section__head">
+                    <div class="section__titles">
+                        <h2 class="section__title">@(item.Type?.Name ?? "—")</h2>
+                        <p class="section__sub">
+                            Hạn: @item.Request.Deadline.ToString("dd/MM/yyyy") · Người yêu cầu: @item.Request.RequestedBy
+                        </p>
+                    </div>
+                    @if (item.Assignment.IsSubmitted)
+                    {
+                        <span class="badge badge--ok badge--dot">Đã nộp</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge--warn badge--dot">Chưa nộp</span>
+                    }
+                </div>
+
+                <div class="section__body">
+                    @if (item.Assignment.IsSubmitted)
+                    {
+                        <dl class="detail-list detail-list--single">
+                            <div>
+                                <dt>Văn bản đã nộp</dt>
+                                <dd>@(item.SubmittedDocument?.Title ?? "(không tìm thấy)")</dd>
+                            </div>
+                            @if (item.SubmittedDocument is not null)
+                            {
+                                <div>
+                                    <dt>Trạng thái duyệt</dt>
+                                    <dd>
+                                        @if (item.SubmittedDocument.Status == DocumentStatus.Approved)
+                                        {
+                                            <span class="badge badge--ok badge--dot">Đã duyệt</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge--warn badge--dot">Chờ duyệt</span>
+                                        }
+                                    </dd>
+                                </div>
+                            }
+                        </dl>
+                    }
+                    else
+                    {
+                        <form asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="requestUserId" value="@item.Assignment.Id" />
+                            <div class="form-grid form-grid--3">
+                                <div class="form-field">
+                                    <label class="form-label" for="req-title-@item.Assignment.Id">Tiêu đề</label>
+                                    <input class="form-control form-control-sm" id="req-title-@item.Assignment.Id"
+                                           name="title" placeholder="Tiêu đề văn bản"
+                                           value="@(item.Type?.Name)" required maxlength="255" />
+                                </div>
+                                <div class="form-field" style="grid-column:span 2">
+                                    <label class="form-label" for="req-file-@item.Assignment.Id">Tệp</label>
+                                    <input class="form-control form-control-sm" id="req-file-@item.Assignment.Id"
+                                           name="file" type="file" required />
+                                </div>
+                            </div>
+                            <div style="margin-top:12px">
+                                <button type="submit" class="btn btn-primary btn-sm">Nộp văn bản</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+
+                @if (item.Assignment.IsSubmitted && item.SubmittedDocument is not null)
+                {
+                    <div class="section__foot">
+                        <span>Đã gửi cho câu lạc bộ</span>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Download"
+                           asp-route-id="@item.SubmittedDocument.Id">Tải</a>
+                    </div>
+                }
+            </section>
+        }
+    </div>
+}

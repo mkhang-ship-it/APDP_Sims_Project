@@ -1,0 +1,186 @@
+@model SIMS.Web.Models.ExpenseListPageModel
+@using SIMS.Domain.Finance
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Chi phí";
+    var canCreate = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:create")).Succeeded;
+    var canEdit = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:edit")).Succeeded;
+    var canDelete = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:delete")).Succeeded;
+    var canApprove = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:approve")).Succeeded;
+    var canReject = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:reject")).Succeeded;
+
+    string Label(ExpenseStatus status) => status switch
+    {
+        ExpenseStatus.Pending => "Chờ duyệt",
+        ExpenseStatus.Approved => "Đã duyệt",
+        ExpenseStatus.Rejected => "Từ chối",
+        _ => "Đã chi",
+    };
+
+    string BadgeClass(ExpenseStatus status) => status switch
+    {
+        ExpenseStatus.Pending => "badge--warn",
+        ExpenseStatus.Approved => "badge--ok",
+        ExpenseStatus.Rejected => "badge--danger",
+        _ => "badge--accent",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính</span>
+        <h1>Chi phí CLB</h1>
+        <p class="page-head__sub">
+            @Model.Summary.Total khoản · <span class="tnum">@Model.Summary.Pending</span> chờ duyệt
+        </p>
+    </div>
+    @if (canCreate)
+    {
+        <div class="page-head__actions">
+            <a class="btn btn-primary btn-sm" asp-action="Create">Tạo chi phí</a>
+        </div>
+    }
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Tổng</div>
+        <div class="stat__value">@Model.Summary.Total</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Chờ duyệt</div>
+        <div class="stat__value" style="color:var(--warn)">@Model.Summary.Pending</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã duyệt</div>
+        <div class="stat__value" style="color:var(--ok)">@Model.Summary.Approved</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã chi</div>
+        <div class="stat__value">@Model.Summary.Paid</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã chi (tiền)</div>
+        <div class="stat__value">@Model.Summary.PaidAmount.ToString("N0") đ</div>
+        <div class="stat__meta">Chờ duyệt: @Model.Summary.PendingAmount.ToString("N0") đ</div>
+    </div>
+</div>
+
+<form method="get" class="section" style="margin-bottom:16px">
+    <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <div class="form-field" style="min-width:220px">
+            <label class="form-label" for="status">Trạng thái</label>
+            <select class="form-select" id="status" name="status">
+                <option value="">Tất cả</option>
+                @foreach (var value in Enum.GetValues<ExpenseStatus>())
+                {
+                    if (string.Equals(Model.Status, value.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@value" selected>@Label(value)</option>
+                    }
+                    else
+                    {
+                        <option value="@value">@Label(value)</option>
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-outline-secondary">Lọc</button>
+    </div>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có chi phí",
+                     Text = "Tạo khoản chi đầu tiên hoặc đổi bộ lọc trạng thái.",
+                     ActionText = canCreate ? "Tạo chi phí" : null,
+                     ActionUrl = canCreate ? Url.Action("Create") : null
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo tên, CLB, người đề nghị…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Tên</th>
+                        <th scope="col" data-sort>CLB</th>
+                        <th scope="col" class="col-num" data-sort>Số tiền</th>
+                        <th scope="col" data-sort>Người đề nghị</th>
+                        <th scope="col" data-sort>Kỳ</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var expense = item.Expense;
+                        <tr>
+                            <td>
+                                <span class="fw-medium">@expense.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(expense.Description))
+                                {
+                                    <span class="muted small d-block">@expense.Description</span>
+                                }
+                            </td>
+                            <td>@item.ClubName</td>
+                            <td class="col-num">@expense.Amount.ToString("N0")</td>
+                            <td>@expense.RequestedBy</td>
+                            <td>@expense.Period</td>
+                            <td>
+                                <span class="badge @BadgeClass(expense.Status) badge--dot">@Label(expense.Status)</span>
+                            </td>
+                            <td class="col-actions">
+                                @if (canApprove && expense.Status == ExpenseStatus.Pending)
+                                {
+                                    <form asp-action="Approve" asp-route-id="@expense.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-primary">Duyệt</button>
+                                    </form>
+                                }
+                                @if (canReject && expense.Status == ExpenseStatus.Pending)
+                                {
+                                    <form asp-action="Reject" asp-route-id="@expense.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Từ chối</button>
+                                    </form>
+                                }
+                                @if (canEdit && expense.Status == ExpenseStatus.Approved)
+                                {
+                                    <form asp-action="MarkPaid" asp-route-id="@expense.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-primary">Đã chi</button>
+                                    </form>
+                                }
+                                @if (canEdit && expense.IsEditable)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@expense.Id">Sửa</a>
+                                }
+                                @if (canDelete && expense.IsEditable)
+                                {
+                                    <form asp-action="Delete" asp-route-id="@expense.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

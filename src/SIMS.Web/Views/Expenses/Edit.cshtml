@@ -1,0 +1,75 @@
+@model SIMS.Web.Models.ExpenseEditPageModel
+@{
+    ViewData["Title"] = "Sửa chi phí";
+    var expense = Model.Expense;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính / Chi phí</span>
+        <h1>Sửa chi phí</h1>
+        <p class="page-head__sub">@expense.Title</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+@if (!expense.IsEditable)
+{
+    <div class="alert alert-warning" role="alert">
+        <p class="alert__title">Không thể sửa</p>
+        Chỉ có thể sửa chi phí đang chờ duyệt.
+    </div>
+}
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin khoản chi</h2>
+        </div>
+    </div>
+
+    <form asp-action="Edit" asp-route-id="@expense.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Title">Tên chi phí <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Title")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Amount">Số tiền (đ) <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Amount" name="Amount" type="number" min="0" step="1000"
+                           value="@Model.Form.Amount" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Amount")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Period">Kỳ</label>
+                    <input class="form-control" id="Period" name="Period" value="@Model.Form.Period" />
+                    <span class="text-danger small">@Html.ValidationMessage("Period")</span>
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Description">Mô tả</label>
+                    <textarea class="form-control" id="Description" name="Description" rows="3">@Model.Form.Description</textarea>
+                    <span class="text-danger small">@Html.ValidationMessage("Description")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

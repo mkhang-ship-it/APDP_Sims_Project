@@ -1,0 +1,97 @@
+@model IReadOnlyList<SIMS.Domain.Events.Event>
+@{
+    ViewData["Title"] = "Sự kiện";
+    string StatusLabel(SIMS.Domain.Events.EventStatus status) => status switch
+    {
+        SIMS.Domain.Events.EventStatus.Draft => "Nháp",
+        SIMS.Domain.Events.EventStatus.Published => "Đã công bố",
+        SIMS.Domain.Events.EventStatus.Completed => "Hoàn thành",
+        _ => "Đã huỷ",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ</span>
+        <h1>Sự kiện</h1>
+        <p class="page-head__sub">@Model.Count sự kiện · @(Model.Count(item => item.Status == SIMS.Domain.Events.EventStatus.Published)) đã công bố</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Calendar">Lịch tháng</a>
+        <a class="btn btn-primary btn-sm" asp-action="Create">+ Tạo sự kiện</a>
+    </div>
+</header>
+
+@if (Model.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có sự kiện nào",
+                     Text = "Tạo sự kiện đầu tiên để bắt đầu điểm danh và quản lý người tham gia.",
+                     ActionText = "+ Tạo sự kiện",
+                     ActionUrl = Url.Action("Create")
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo mã, tên, địa điểm…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Mã</th>
+                        <th scope="col" data-sort>Tên sự kiện</th>
+                        <th scope="col" data-sort>Thời gian</th>
+                        <th scope="col" data-sort>Địa điểm</th>
+                        <th scope="col" class="col-num" data-sort>Sức chứa</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><code>@item.Code</code></td>
+                            <td class="fw-medium">@item.Title</td>
+                            <td class="col-num" data-value="@item.StartsAtUtc.ToString("yyyy-MM-ddTHH:mm")">
+                                @item.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td class="muted">@item.Location</td>
+                            <td class="col-num">@item.Capacity</td>
+                            <td>
+                                @switch (item.Status)
+                                {
+                                    case SIMS.Domain.Events.EventStatus.Published:
+                                        <span class="badge badge--ok badge--dot">@StatusLabel(item.Status)</span>
+                                        break;
+                                    case SIMS.Domain.Events.EventStatus.Draft:
+                                        <span class="badge badge--neutral badge--dot">@StatusLabel(item.Status)</span>
+                                        break;
+                                    case SIMS.Domain.Events.EventStatus.Completed:
+                                        <span class="badge badge--info badge--dot">@StatusLabel(item.Status)</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge--danger badge--dot">@StatusLabel(item.Status)</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Chi tiết</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

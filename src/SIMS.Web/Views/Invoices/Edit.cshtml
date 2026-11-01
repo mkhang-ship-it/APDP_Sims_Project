@@ -1,0 +1,83 @@
+@model SIMS.Web.Models.InvoiceEditPageModel
+@{
+    ViewData["Title"] = "Sửa hoá đơn";
+    var invoice = Model.Invoice;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính / Hoá đơn</span>
+        <h1>Sửa hoá đơn</h1>
+        <p class="page-head__sub"><code>@invoice.Code</code> · @Model.MemberName</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Details" asp-route-id="@invoice.Id">Quay lại</a>
+    </div>
+</header>
+
+@if (!invoice.IsEditable)
+{
+    <div class="alert alert-warning" role="alert">
+        <p class="alert__title">Không thể sửa</p>
+        Chỉ có thể sửa hoá đơn đang chờ thanh toán.
+    </div>
+}
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin hoá đơn</h2>
+            <p class="section__sub">Mọi thay đổi được ghi vào nhật ký hệ thống.</p>
+        </div>
+    </div>
+
+    <form asp-action="Edit" asp-route-id="@invoice.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Title">Tên hoá đơn <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Title")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="TotalAmount">Số tiền (đ) <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="TotalAmount" name="TotalAmount" type="number" min="0" step="1000"
+                           value="@Model.Form.TotalAmount" required />
+                    <span class="text-danger small">@Html.ValidationMessage("TotalAmount")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="DueDate">Hạn thanh toán <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="DueDate" name="DueDate" type="date"
+                           value="@Model.Form.DueDate.ToString("yyyy-MM-dd")" required />
+                    <span class="text-danger small">@Html.ValidationMessage("DueDate")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Period">Kỳ thu</label>
+                    <input class="form-control" id="Period" name="Period" value="@Model.Form.Period" />
+                    <span class="text-danger small">@Html.ValidationMessage("Period")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Note">Ghi chú</label>
+                    <input class="form-control" id="Note" name="Note" value="@Model.Form.Note" />
+                    <span class="text-danger small">@Html.ValidationMessage("Note")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@invoice.Id">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

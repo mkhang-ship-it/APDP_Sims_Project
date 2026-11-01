@@ -1,0 +1,67 @@
+@model SIMS.Web.Models.EnrolFormModel
+@{
+    ViewData["Title"] = "Đăng ký học phần";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Đăng ký</span>
+        <h1>Đăng ký học phần</h1>
+        <p class="page-head__sub">Chọn sinh viên và học phần cần đăng ký.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại danh sách</a>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin đăng ký</h2>
+            <p class="section__sub">Hệ thống từ chối đăng ký trùng, quá sức chứa hoặc chưa đạt học phần tiên quyết.</p>
+        </div>
+    </div>
+
+    <form asp-action="Enrol" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-label" for="studentId">Sinh viên <span class="required-mark" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="studentId" name="studentId" required>
+                        <option value="">— Chọn sinh viên —</option>
+                        @foreach (var student in Model.Students)
+                        {
+                            <option value="@student.Id">@student.StudentCode — @student.FullName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="courseId">Học phần <span class="required-mark" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="courseId" name="courseId" required>
+                        <option value="">— Chọn học phần —</option>
+                        @foreach (var course in Model.Courses)
+                        {
+                            <option value="@course.Id">
+                                @course.Code — @course.Title (sức chứa @course.Capacity@(course.HasPrerequisite ? $", tiên quyết {course.PrerequisiteCode}" : ""))
+                            </option>
+                        }
+                    </select>
+                    <div class="form-text">Sức chứa và tiên quyết được kiểm tra lại ở máy chủ khi lưu.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Đăng ký</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

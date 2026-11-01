@@ -1,0 +1,253 @@
+@model SIMS.Web.Models.PublicDrawPageModel
+@{
+    Layout = null;
+    var draw = Model.Draw;
+    var wonByPrize = draw.Winners
+        .GroupBy(winner => winner.PrizeName)
+        .ToDictionary(group => group.Key, group => group.Count());
+}
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>@draw.Draw.Title — Bốc thăm may mắn</title>
+    @if (Model.Verified)
+    {
+        <meta http-equiv="refresh" content="30" />
+    }
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <style>
+        :root {
+            --bg: #0b0d10;
+            --surface: #14171c;
+            --surface-2: #191d24;
+            --border: #262b33;
+            --text: #e9eaec;
+            --text-2: #a5abb5;
+            --accent: #ff7a3d;
+            --ok: #3fb950;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, "Segoe UI", system-ui, sans-serif;
+            background:
+                radial-gradient(900px 420px at 15% -10%, rgba(242, 101, 34, .22), transparent 60%),
+                radial-gradient(700px 380px at 100% 0%, rgba(88, 101, 242, .14), transparent 55%),
+                var(--bg);
+            color: var(--text);
+            padding: 40px 18px 56px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .shell { width: 100%; max-width: 920px; margin: 0 auto; }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 11px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -.02em; }
+
+        .muted { color: var(--text-2); font-size: 14px; }
+        .meta { color: var(--text-2); font-size: 13px; margin-top: 4px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 24px; }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .card h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+        .card .hint { color: var(--text-2); font-size: 13px; margin: 0 0 12px; }
+
+        .prize { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .prize:last-child { border-bottom: 0; padding-bottom: 0; }
+        .prize__name { font-weight: 550; font-size: 14px; }
+        .prize__left { display: flex; align-items: center; gap: 8px; }
+
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 999px;
+            background: rgba(255, 122, 61, .16); color: var(--accent);
+            border: 1px solid rgba(255, 122, 61, .3);
+            font-size: 11px; font-weight: 600; letter-spacing: .02em;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+        th {
+            text-align: left; font-weight: 600; font-size: 11px; letter-spacing: .06em;
+            text-transform: uppercase; color: var(--text-2); padding: 8px 8px 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: 0; }
+        td.num { font-variant-numeric: tabular-nums; color: var(--text-2); white-space: nowrap; }
+
+        .alert {
+            background: rgba(248, 81, 73, .12);
+            border: 1px solid rgba(248, 81, 73, .4);
+            color: #ffb4ae;
+            padding: 10px 14px; border-radius: 10px; margin-top: 18px; font-size: 14px;
+        }
+
+        form.verify { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+        input[type=password] {
+            padding: 11px 13px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--surface-2);
+            color: var(--text); font-size: 14px; min-width: 220px; flex: 1 1 220px;
+            outline: none;
+        }
+        input[type=password]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 122, 61, .2); }
+
+        button {
+            padding: 11px 20px; border-radius: 10px; border: 1px solid transparent;
+            background: var(--accent); color: #1a1005; font-weight: 650; font-size: 14px;
+            cursor: pointer; font-family: inherit;
+        }
+        button:hover { filter: brightness(1.06); }
+        button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        .empty {
+            border: 1px dashed var(--border); border-radius: 12px;
+            padding: 18px; text-align: center; color: var(--text-2); font-size: 13.5px;
+            margin-top: 8px;
+        }
+
+        footer { margin-top: 30px; font-size: 13px; color: var(--text-2); display: flex; gap: 8px; flex-wrap: wrap; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        @@media (max-width: 520px) {
+            body { padding: 26px 14px 40px; }
+            .card { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <span class="eyebrow">Bốc thăm may mắn</span>
+        <h1>@draw.Draw.Title</h1>
+        <div class="meta">
+            @draw.Draw.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+            → @draw.Draw.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+            · @draw.Draw.ParticipantList.Count người tham gia
+        </div>
+
+        @if (Model.SecurityError is not null)
+        {
+            <div class="alert" role="alert">@Model.SecurityError</div>
+        }
+
+        @if (!Model.Verified)
+        {
+            <div class="card" style="margin-top:20px">
+                <h2>Nhập mã bảo mật</h2>
+                <p class="hint">Ban tổ chức cung cấp mã để xem danh sách người trúng thưởng.</p>
+                <form class="verify" method="post" action="/lucky/@draw.Draw.Slug/verify">
+                    @Html.AntiForgeryToken()
+                    <input type="password" name="securityCode" placeholder="Mã bảo mật"
+                           aria-label="Mã bảo mật" required />
+                    <button type="submit">Xác nhận</button>
+                </form>
+            </div>
+        }
+
+        <div class="grid">
+            <div class="card">
+                <h2>Giải thưởng</h2>
+                <p class="hint">Số lượng còn lại được cập nhật sau mỗi lượt quay.</p>
+                @if (draw.Prizes.Count == 0)
+                {
+                    <div class="empty">Chưa công bố giải thưởng.</div>
+                }
+                else
+                {
+                    @foreach (var prize in draw.Prizes)
+                    {
+                        var won = wonByPrize.TryGetValue(prize.Name, out var count) ? count : 0;
+                        var remaining = Math.Max(0, prize.Quantity - won);
+                        <div class="prize">
+                            <span class="prize__left">
+                                <span class="prize__name">@prize.Name</span>
+                                @if (prize.IsSpecial)
+                                {
+                                    <span class="badge">Đặc biệt</span>
+                                }
+                            </span>
+                            <span class="muted">Còn @remaining / @prize.Quantity</span>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="card">
+                <h2>Người trúng thưởng</h2>
+                <p class="hint">
+                    @if (!Model.Verified)
+                    {
+                        <text>Cần mã bảo mật để xem kết quả.</text>
+                    }
+                    else
+                    {
+                        <text>Trang tự cập nhật sau 30 giây.</text>
+                    }
+                </p>
+
+                @if (!Model.Verified)
+                {
+                    <div class="empty">Kết quả được ẩn cho đến khi xác nhận mã.</div>
+                }
+                else if (draw.Winners.Count == 0)
+                {
+                    <div class="empty">Chưa quay số.</div>
+                }
+                else
+                {
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Người trúng</th>
+                                <th scope="col">Giải</th>
+                                <th scope="col">Thời điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var winner in draw.Winners)
+                            {
+                                <tr>
+                                    <td>@winner.Participant</td>
+                                    <td>@winner.PrizeName</td>
+                                    <td class="num">@winner.WonAtUtc.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <footer>
+            <a href="/">Về trang chủ</a>
+            <span aria-hidden="true">·</span>
+            <span>Kết quả do ban tổ chức CLB công bố.</span>
+        </footer>
+    </div>
+</body>
+</html>

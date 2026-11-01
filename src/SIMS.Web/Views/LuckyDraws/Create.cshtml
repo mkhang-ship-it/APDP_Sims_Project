@@ -1,0 +1,107 @@
+@model SIMS.Web.Models.LuckyDrawCreatePageModel
+@{
+    ViewData["Title"] = "Tạo chương trình bốc thăm";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng / Bốc thăm</span>
+        <h1>Tạo chương trình bốc thăm</h1>
+        <p class="page-head__sub">Chương trình chỉ quay số trong khoảng thời gian đã đặt.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin chương trình</h2>
+            <p class="section__sub">Mã bảo mật dùng để xem kết quả trên trang công khai.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                @if (Model.IsAdmin)
+                {
+                    <div class="form-field">
+                        <label class="form-label" for="ClubId">Câu lạc bộ</label>
+                        <select class="form-select" id="ClubId" name="ClubId">
+                            @foreach (var club in Model.Clubs)
+                            {
+                                if (club.Id == Model.Form.ClubId)
+                                {
+                                    <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@club.Id">@club.Code — @club.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" name="ClubId" value="@Model.Form.ClubId" />
+                }
+
+                <div class="form-field" style="grid-column:span 2">
+                    <label class="form-label" for="Title">Tên chương trình <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required maxlength="255" />
+                    <span class="text-danger small">@Html.ValidationMessage("Title")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="SecurityCode">Mã bảo mật</label>
+                    <input class="form-control" id="SecurityCode" name="SecurityCode" value="@Model.Form.SecurityCode" maxlength="20" />
+                    <div class="form-text">Tuỳ chọn — tối đa 20 ký tự.</div>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="StartAt">Bắt đầu <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="StartAt" name="StartAt" type="datetime-local"
+                           value="@Model.Form.StartAt.ToString("yyyy-MM-ddTHH:mm")" required />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="EndAt">Kết thúc <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="EndAt" name="EndAt" type="datetime-local"
+                           value="@Model.Form.EndAt.ToString("yyyy-MM-ddTHH:mm")" required />
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="check-card" for="IsActive">
+                        <input class="form-check-input" type="checkbox" id="IsActive" name="IsActive" value="true"
+                               @(Model.Form.IsActive ? "checked" : null) />
+                        <span>
+                            <span class="check-card__title">Cho phép mở chương trình</span>
+                            <span class="check-card__meta">Tắt để tạm ẩn khỏi trang công khai.</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Participants">Người tham gia</label>
+                    <textarea class="form-control" id="Participants" name="Participants" rows="6">@Model.Form.Participants</textarea>
+                    <div class="form-text">Mỗi dòng một tên.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Tạo chương trình</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

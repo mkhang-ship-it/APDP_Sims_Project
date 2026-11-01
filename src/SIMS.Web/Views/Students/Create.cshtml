@@ -1,0 +1,38 @@
+@model SIMS.Web.Models.StudentFormModel
+@{
+    ViewData["Title"] = "Thêm sinh viên";
+    ViewData["IsEdit"] = false;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Sinh viên</span>
+        <h1>Thêm sinh viên</h1>
+        <p class="page-head__sub">MSSV, email và chương trình học là bắt buộc.</p>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin hồ sơ</h2>
+            <p class="section__sub">Dữ liệu được kiểm tra trùng MSSV và email trước khi lưu.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <partial name="_Form" model="Model" />
+        </div>
+        <div class="form-actions">
+            <span class="form-actions__hint">Trường có dấu * là bắt buộc.</span>
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu sinh viên</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

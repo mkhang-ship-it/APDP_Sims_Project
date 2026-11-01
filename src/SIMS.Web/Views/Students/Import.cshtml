@@ -1,0 +1,101 @@
+@model SIMS.Web.Models.StudentImportViewModel
+@{
+    ViewData["Title"] = "Import sinh viên";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Sinh viên</span>
+        <h1>Import sinh viên</h1>
+        <p class="page-head__sub">Nhận tệp CSV (UTF-8) hoặc Excel (.xlsx), tối đa 5 MB.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại danh sách</a>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Tệp dữ liệu</h2>
+            <p class="section__sub">Dòng lỗi được báo theo số dòng và bỏ qua; dòng hợp lệ vẫn được ghi.</p>
+        </div>
+    </div>
+
+    <form asp-action="Import" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-field">
+                <label class="form-label" for="file">File CSV hoặc Excel</label>
+                <input class="form-control" type="file" id="file" name="file"
+                       accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+                <div class="form-text">
+                    Cột bắt buộc: <code>student_code, full_name, email, date_of_birth (yyyy-MM-dd), program</code>.
+                    Sheet đầu tiên của tệp Excel được đọc.
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Bắt đầu import</button>
+        </div>
+    </form>
+</section>
+
+@if (Model.Result is not null)
+{
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Kết quả import</h2>
+                <p class="section__sub">Tổng hợp sau khi xử lý tệp.</p>
+            </div>
+        </div>
+        <div class="section__body">
+            <div class="stat-grid">
+                <div class="stat">
+                    <div class="stat__label">Tổng dòng dữ liệu</div>
+                    <div class="stat__value">@Model.Result.TotalRows</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__label">Import thành công</div>
+                    <div class="stat__value" style="color:var(--ok)">@Model.Result.Imported</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__label">Dòng lỗi</div>
+                    <div class="stat__value" style="color:var(--danger)">@Model.Result.Errors.Count</div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Result.Errors.Count > 0)
+        {
+            <div class="table-shell">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 90px">Dòng</th>
+                            <th scope="col">Lỗi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var error in Model.Result.Errors)
+                        {
+                            <tr>
+                                <td class="col-num">@error.RowNumber</td>
+                                <td class="text-danger">@error.Message</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

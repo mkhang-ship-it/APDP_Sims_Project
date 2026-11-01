@@ -1,0 +1,176 @@
+@model SIMS.Web.Models.NotificationPageModel
+@using SIMS.Domain.Notifications
+@{
+    ViewData["Title"] = "Quản lý thông báo";
+    var activeCount = Model.Items.Count(row => row.Notification.IsActive);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Quản lý thông báo</h1>
+        <p class="page-head__sub">@Model.Items.Count thông báo · @activeCount đang hiển thị</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Inbox">Hộp thư của tôi</a>
+    </div>
+</header>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Tạo thông báo</h2>
+            <p class="section__sub">Gửi tới một hoặc nhiều câu lạc bộ.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div class="form-grid">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="notif-title">Tiêu đề <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="notif-title" name="Title" placeholder="Tiêu đề" required maxlength="255" />
+                </div>
+
+                @if (Model.IsAdmin)
+                {
+                    <div class="form-field form-field--full">
+                        <label class="check-card" for="allClubs">
+                            <input class="form-check-input" type="checkbox" name="TargetAllClubs" value="true" id="allClubs" />
+                            <span>
+                                <span class="check-card__title">Gửi tất cả CLB</span>
+                                <span class="check-card__meta">Bỏ chọn để chỉ gửi cho các CLB bên dưới.</span>
+                            </span>
+                        </label>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-field form-field--full">
+                        <p class="muted mb-0">Gửi cho CLB hiện tại của bạn.</p>
+                    </div>
+                }
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="notif-content">Nội dung <span class="required-mark" aria-hidden="true">*</span></label>
+                    <textarea class="form-control" id="notif-content" name="Content" rows="4"
+                              placeholder="Nội dung" required maxlength="5000"></textarea>
+                </div>
+            </div>
+
+            @if (Model.IsAdmin)
+            {
+                <div style="margin-top:14px">
+                    <span class="form-label">Câu lạc bộ nhận</span>
+                    <div class="check-grid">
+                        @foreach (var club in Model.Clubs)
+                        {
+                            <label class="check-card" for="club-@club.Id">
+                                <input class="form-check-input" type="checkbox" name="ClubIds" value="@club.Id"
+                                       id="club-@club.Id" />
+                                <span>
+                                    <span class="check-card__title">@club.Name</span>
+                                    <span class="check-card__meta">@club.Code</span>
+                                </span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Gửi thông báo</button>
+        </div>
+    </form>
+</section>
+
+<section class="section" data-table data-page-size="10">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông báo đã gửi</h2>
+            <p class="section__sub">Sửa nội dung hoặc ẩn thông báo khỏi hộp thư.</p>
+        </div>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có thông báo",
+                     Text = "Dùng biểu mẫu phía trên để gửi thông báo đầu tiên."
+                 })" />
+    }
+    else
+    {
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo tiêu đề, người gửi…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Tiêu đề</th>
+                        <th scope="col">Đối tượng</th>
+                        <th scope="col" data-sort>Người gửi</th>
+                        <th scope="col" data-sort>Thời điểm</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-medium">@row.Notification.Title</td>
+                            <td>
+                                @if (row.Notification.TargetType == NotificationTarget.AllClubs)
+                                {
+                                    <span class="badge badge--info">Tất cả CLB</span>
+                                }
+                                else
+                                {
+                                    <div class="row-inline">
+                                        @foreach (var clubId in row.TargetClubIds)
+                                        {
+                                            <span class="badge badge--neutral">
+                                                @(Model.ClubNames.TryGetValue(clubId, out var name) ? name : "?")
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                            <td class="muted">@row.Notification.Sender</td>
+                            <td class="col-num" data-value="@row.Notification.CreatedAtUtc.ToString("yyyy-MM-ddTHH:mm")">
+                                @row.Notification.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td>
+                                @if (row.Notification.IsActive)
+                                {
+                                    <span class="badge badge--ok badge--dot">Đang hiện</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge--neutral badge--dot">Đã ẩn</span>
+                                }
+                            </td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Edit"
+                                   asp-route-id="@row.Notification.Id">Sửa</a>
+                                <form asp-action="Delete" asp-route-id="@row.Notification.Id" method="post"
+                                      class="d-inline" onsubmit="return confirm('Xoá thông báo này?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    }
+</section>

@@ -1,0 +1,120 @@
+@model SIMS.Web.Models.DocumentCreatePageModel
+@using SIMS.Domain.Documents
+@{
+    ViewData["Title"] = "Tải văn bản";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Tải văn bản</h1>
+        <p class="page-head__sub">Chấp nhận PDF, Word, JPG/PNG, TXT — tối đa 10 MB.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+@if (Model.IsAdmin && Model.Clubs.Count > 1)
+{
+    <form method="get" asp-action="Create" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in Model.Clubs)
+                    {
+                        if (club.Id == Model.Form.ClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline-secondary">Đổi CLB</button>
+        </div>
+    </form>
+}
+
+@if (Model.Types.Count == 0)
+{
+    <div class="alert alert-warning" role="alert">
+        <p class="alert__title">Chưa có loại văn bản</p>
+        CLB chưa có loại văn bản đang hoạt động. Hãy tạo loại văn bản trước khi tải lên.
+        <a asp-action="Types" asp-route-clubId="@Model.Form.ClubId">Quản lý loại văn bản</a>
+    </div>
+}
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin văn bản</h2>
+            <p class="section__sub">Văn bản mới ở trạng thái chờ duyệt cho đến khi cán bộ phê duyệt.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ClubId" value="@Model.Form.ClubId" />
+
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-label" for="DocumentTypeId">Loại văn bản <span class="required-mark" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="DocumentTypeId" name="DocumentTypeId" required>
+                        @foreach (var type in Model.Types)
+                        {
+                            if (type.Id == Model.Form.DocumentTypeId)
+                            {
+                                <option value="@type.Id" selected>@type.Code — @type.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@type.Id">@type.Code — @type.Name</option>
+                            }
+                        }
+                    </select>
+                    <span class="text-danger small">@Html.ValidationMessage("DocumentTypeId")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Visibility">Chế độ hiển thị</label>
+                    <select class="form-select" id="Visibility" name="Visibility">
+                        <option value="@DocumentVisibility.Private">Riêng tư</option>
+                        <option value="@DocumentVisibility.Restricted">Giới hạn (chọn người xem)</option>
+                        <option value="@DocumentVisibility.Public">Công khai</option>
+                    </select>
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Title">Tiêu đề <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Title")</span>
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="File">Tệp đính kèm <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="File" name="File" type="file"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" required />
+                    <div class="form-text">PDF, Word, JPG/PNG, TXT — tối đa 10 MB.</div>
+                    <span class="text-danger small">@Html.ValidationMessage("File")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Tải lên</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

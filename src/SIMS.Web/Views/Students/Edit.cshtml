@@ -1,0 +1,38 @@
+@model SIMS.Web.Models.StudentFormModel
+@{
+    ViewData["Title"] = "Sửa sinh viên";
+    ViewData["IsEdit"] = true;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Sinh viên</span>
+        <h1>Sửa sinh viên</h1>
+        <p class="page-head__sub">MSSV không thể thay đổi sau khi tạo hồ sơ.</p>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin hồ sơ</h2>
+            <p class="section__sub">Mọi thay đổi được ghi vào nhật ký hệ thống.</p>
+        </div>
+    </div>
+
+    <form asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <partial name="_Form" model="Model" />
+        </div>
+        <div class="form-actions">
+            <span class="form-actions__hint">Trường có dấu * là bắt buộc.</span>
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

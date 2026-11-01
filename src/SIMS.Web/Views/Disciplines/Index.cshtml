@@ -1,0 +1,145 @@
+@model SIMS.Web.Models.DisciplinePageModel
+@{
+    ViewData["Title"] = "Danh mục kỷ luật";
+    var clubs = ViewData["Clubs"] as IReadOnlyList<SIMS.Web.Models.ClubOption> ?? Array.Empty<SIMS.Web.Models.ClubOption>();
+    var selectedClubId = (Guid)(ViewData["SelectedClubId"] ?? Guid.Empty);
+    var isAdmin = (bool)(ViewData["IsAdmin"] ?? false);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Danh mục kỷ luật / điểm rèn luyện</h1>
+        <p class="page-head__sub">@Model.Items.Count danh mục · dùng để ghi nhận điểm cộng/trừ cho thành viên.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Records" asp-route-clubId="@selectedClubId">Bản ghi</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Summary" asp-route-clubId="@selectedClubId">Tổng hợp điểm</a>
+    </div>
+</header>
+
+@if (isAdmin && clubs.Count > 1)
+{
+    <form method="get" asp-action="Index" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label mb-0" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in clubs)
+                    {
+                        if (club.Id == selectedClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thêm danh mục</h2>
+            <p class="section__sub">Điểm dương là cộng, điểm âm là trừ.</p>
+        </div>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="clubId" value="@selectedClubId" />
+        <div class="section__body">
+            <div class="form-grid form-grid--3">
+                <div class="form-field">
+                    <label class="form-label" for="discipline-name">Tên danh mục <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="discipline-name" name="Name" placeholder="VD: Tham gia đầy đủ hoạt động" required maxlength="255" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="discipline-points">Điểm <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="discipline-points" name="Points" type="number" step="0.5" min="-1000" max="1000"
+                           placeholder="VD: 5" required />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="discipline-description">Mô tả</label>
+                    <input class="form-control" id="discipline-description" name="Description" placeholder="Mô tả ngắn" maxlength="1000" />
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Thêm danh mục</button>
+        </div>
+    </form>
+</section>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Danh mục hiện có</h2>
+            <p class="section__sub">Sửa trực tiếp trên dòng tương ứng.</p>
+        </div>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có danh mục",
+                     Text = "Tạo danh mục đầu tiên để bắt đầu ghi nhận điểm rèn luyện."
+                 })" />
+    }
+    else
+    {
+        <div class="table-shell">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Mã</th>
+                        <th scope="col">Tên</th>
+                        <th scope="col" class="col-num">Điểm</th>
+                        <th scope="col">Mô tả</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var discipline in Model.Items)
+                    {
+                        <tr>
+                            <td><code>@discipline.Code</code></td>
+                            <td class="fw-medium">@discipline.Name</td>
+                            <td class="col-num @(discipline.Points < 0 ? "text-danger" : "text-success")">
+                                @(discipline.Points > 0 ? "+" : string.Empty)@discipline.Points.ToString("0.#")
+                            </td>
+                            <td class="muted">@discipline.Description</td>
+                            <td class="col-actions">
+                                <form asp-action="Delete" asp-route-id="@discipline.Id" method="post"
+                                      onsubmit="return confirm('Xoá danh mục này?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" style="background:var(--surface-sunken);padding-top:6px;padding-bottom:6px">
+                                <form asp-action="Edit" asp-route-id="@discipline.Id" method="post"
+                                      style="display:grid;grid-template-columns:minmax(0,1.2fr) 110px minmax(0,1fr) auto;gap:8px;align-items:center">
+                                    @Html.AntiForgeryToken()
+                                    <input class="form-control form-control-sm" name="Name" value="@discipline.Name"
+                                           aria-label="Tên danh mục" required />
+                                    <input class="form-control form-control-sm" name="Points" type="number" step="0.5"
+                                           value="@discipline.Points" aria-label="Điểm" required />
+                                    <input class="form-control form-control-sm" name="Description" value="@discipline.Description"
+                                           aria-label="Mô tả" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Lưu</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

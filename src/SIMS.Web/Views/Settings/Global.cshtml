@@ -1,0 +1,109 @@
+@model SIMS.Web.Models.SettingsPageModel
+@using SIMS.Application.Settings
+@{
+    ViewData["Title"] = "Cài đặt hệ thống";
+    var theme = Model.Value(SettingKeys.SiteTheme);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Hệ thống</span>
+        <h1>Cài đặt hệ thống</h1>
+        <p class="page-head__sub">Tên, giao diện, màu chủ đạo và chế độ bảo trì áp dụng toàn hệ thống.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Club">Cài đặt CLB</a>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin chung</h2>
+        </div>
+    </div>
+
+    <form asp-action="Global" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div class="form-grid">
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="siteTitle">Tên hệ thống</label>
+                    <input class="form-control" id="siteTitle" name="@SettingKeys.SiteTitle"
+                           value="@Model.Value(SettingKeys.SiteTitle)" maxlength="2000" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="siteTheme">Giao diện</label>
+                    <select class="form-select" id="siteTheme" name="@SettingKeys.SiteTheme">
+                        @if (theme == "dark")
+                        {
+                            <option value="light">Sáng</option>
+                            <option value="dark" selected>Tối</option>
+                        }
+                        else
+                        {
+                            <option value="light" selected>Sáng</option>
+                            <option value="dark">Tối</option>
+                        }
+                    </select>
+                    <div class="form-text">Người dùng vẫn có thể đổi giao diện bằng nút ở thanh trên.</div>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="sitePrimary">Màu chủ đạo</label>
+                    <input class="form-control form-control-color w-100" id="sitePrimary" type="color"
+                           name="@SettingKeys.SitePrimaryColor"
+                           value="@(string.IsNullOrWhiteSpace(Model.Value(SettingKeys.SitePrimaryColor)) ? "#0d6efd" : Model.Value(SettingKeys.SitePrimaryColor))" />
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="siteDescription">Mô tả</label>
+                    <textarea class="form-control" id="siteDescription" name="@SettingKeys.SiteDescription" rows="3">@Model.Value(SettingKeys.SiteDescription)</textarea>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="siteEmail">Email hỗ trợ</label>
+                    <input class="form-control" id="siteEmail" type="email" name="@SettingKeys.SiteSupportEmail"
+                           value="@Model.Value(SettingKeys.SiteSupportEmail)" />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="sepayKey">Khoá webhook SePay</label>
+                    <input class="form-control" id="sepayKey" type="password" name="@SettingKeys.PaymentsSePayApiKey"
+                           placeholder="Để trống nếu không đổi" autocomplete="new-password" />
+                    <div class="form-text">Webhook: <code>/api/payments/sepay/webhook</code> (header <code>Authorization: Apikey …</code>).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section__head" style="border-top:1px solid var(--border)">
+            <div class="section__titles">
+                <h2 class="section__title">Chế độ bảo trì</h2>
+                <p class="section__sub">Khách truy cập sẽ nhận trang 503 khi bật.</p>
+            </div>
+        </div>
+
+        <div class="section__body">
+            <label class="check-card" for="maintenance" style="margin-bottom:12px">
+                <input class="form-check-input" type="checkbox" id="maintenance" value="on"
+                       name="@SettingKeys.SystemMaintenance"
+                       @(Model.Value(SettingKeys.SystemMaintenance) == "on" ? "checked" : null) />
+                <span>
+                    <span class="check-card__title">Bật chế độ bảo trì</span>
+                    <span class="check-card__meta">Khách nhận trang thông báo bảo trì thay vì nội dung.</span>
+                </span>
+            </label>
+
+            <div class="form-field">
+                <label class="form-label" for="maintenanceMessage">Thông báo bảo trì</label>
+                <textarea class="form-control" id="maintenanceMessage" rows="3"
+                          name="@SettingKeys.SystemMaintenanceMessage">@Model.Value(SettingKeys.SystemMaintenanceMessage)</textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
+        </div>
+    </form>
+</section>

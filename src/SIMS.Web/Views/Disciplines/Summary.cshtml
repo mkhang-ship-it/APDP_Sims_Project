@@ -1,0 +1,116 @@
+@model SIMS.Web.Models.DisciplineSummaryPageModel
+@{
+    ViewData["Title"] = "Tổng hợp điểm rèn luyện";
+    var clubs = ViewData["Clubs"] as IReadOnlyList<SIMS.Web.Models.ClubOption> ?? Array.Empty<SIMS.Web.Models.ClubOption>();
+    var selectedClubId = (Guid)(ViewData["SelectedClubId"] ?? Guid.Empty);
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Tổng hợp điểm rèn luyện</h1>
+        <p class="page-head__sub">Xếp hạng theo điểm CLB và quy đổi điểm trường.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Records" asp-route-clubId="@selectedClubId">Bản ghi</a>
+        @if (selectedClubId != Guid.Empty)
+        {
+            <a class="btn btn-primary btn-sm" asp-action="ExportSummary" asp-route-clubId="@selectedClubId">Xuất CSV</a>
+        }
+    </div>
+</header>
+
+@if (clubs.Count > 1)
+{
+    <form method="get" asp-action="Summary" class="section" style="margin-bottom:16px">
+        <div class="section__body" style="display:flex;align-items:end;gap:12px;flex-wrap:wrap">
+            <div class="form-field" style="min-width:260px">
+                <label class="form-label mb-0" for="club">Câu lạc bộ</label>
+                <select class="form-select" id="club" name="clubId" onchange="this.form.submit()">
+                    @foreach (var club in clubs)
+                    {
+                        if (club.Id == selectedClubId)
+                        {
+                            <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@club.Id">@club.Code — @club.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+}
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Bảng xếp hạng</h2>
+            <p class="section__sub">@Model.Rows.Count thành viên có điểm</p>
+        </div>
+    </div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có dữ liệu điểm",
+                     Text = "Ghi nhận điểm cho thành viên để xem bảng xếp hạng."
+                 })" />
+    }
+    else
+    {
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:80px">Hạng</th>
+                        <th scope="col">Thành viên</th>
+                        <th scope="col" class="col-num">Điểm CLB</th>
+                        <th scope="col" class="col-num">Điểm trường</th>
+                        <th scope="col">Cán bộ CLB</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var index = 0; index < Model.Rows.Count; index++)
+                    {
+                        var row = Model.Rows[index];
+                        <tr>
+                            <td class="tnum">
+                                @if (index == 0)
+                                {
+                                    <span class="badge badge--accent">#1</span>
+                                }
+                                else
+                                {
+                                    <span class="muted">#@(index + 1)</span>
+                                }
+                            </td>
+                            <td class="fw-medium">@(Model.UserNames.TryGetValue(row.UserId, out var name) ? name : "?")</td>
+                            <td class="col-num @(row.ClubPoints < 0 ? "text-danger" : string.Empty)">
+                                @row.ClubPoints.ToString("0.##")
+                            </td>
+                            <td class="col-num">@row.SchoolPoints.ToString("0.##")</td>
+                            <td>
+                                @if (row.IsLeader)
+                                {
+                                    <span class="badge badge--info">Có (+5)</span>
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="section__foot">
+        Điểm trường = (điểm CLB / điểm CLB cao nhất) × 5, tối thiểu 0; cộng 5 nếu là cán bộ CLB (Admin/Faculty).
+    </div>
+</section>

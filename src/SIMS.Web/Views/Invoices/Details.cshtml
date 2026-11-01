@@ -1,0 +1,189 @@
+@model SIMS.Web.Models.InvoiceDetailsPageModel
+@using SIMS.Domain.Finance
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Chi tiết hoá đơn";
+    var invoice = Model.Detail.Invoice;
+    var canEdit = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:invoices:edit")).Succeeded;
+    var canDelete = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:invoices:delete")).Succeeded;
+    var canPay = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:invoices:mark_paid")).Succeeded;
+
+    string Label(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => "Đã thanh toán",
+        InvoiceStatus.Overdue => "Quá hạn",
+        _ => "Chờ thanh toán",
+    };
+
+    string BadgeClass(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => "badge--ok",
+        InvoiceStatus.Overdue => "badge--danger",
+        _ => "badge--warn",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính / Hoá đơn</span>
+        <h1>@invoice.Code</h1>
+        <p class="page-head__sub">@invoice.Title · @Model.MemberName · @Model.ClubName</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Receipt" asp-route-id="@invoice.Id" target="_blank">Phiếu in</a>
+        @if (canEdit && invoice.IsEditable)
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Edit" asp-route-id="@invoice.Id">Sửa</a>
+        }
+        @if (canDelete && invoice.IsEditable)
+        {
+            <form asp-action="Delete" asp-route-id="@invoice.Id" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">Xoá</button>
+            </form>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Danh sách</a>
+    </div>
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Tổng tiền</div>
+        <div class="stat__value">@invoice.TotalAmount.ToString("N0") đ</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã thu</div>
+        <div class="stat__value" style="color:var(--ok)">@Model.Detail.PaidAmount.ToString("N0") đ</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Còn lại</div>
+        <div class="stat__value" style="color:var(--danger)">@Model.Detail.Remaining.ToString("N0") đ</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Trạng thái</div>
+        <div class="stat__value" style="font-size:1rem;padding-top:5px">
+            <span class="badge @BadgeClass(invoice.Status) badge--dot">@Label(invoice.Status)</span>
+        </div>
+        <div class="stat__meta">Hạn: @invoice.DueDate.ToString("dd/MM/yyyy")</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(invoice.Note))
+{
+    <div class="alert alert-info" role="status">
+        <p class="alert__title">Ghi chú</p>
+        @invoice.Note
+    </div>
+}
+
+<div class="grid-2">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Giao dịch (@Model.Detail.Transactions.Count)</h2>
+                <p class="section__sub">Các khoản đã ghi nhận cho hoá đơn này.</p>
+            </div>
+        </div>
+
+        @if (Model.Detail.Transactions.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyStateModel
+                     {
+                         Title = "Chưa có giao dịch",
+                         Text = "Ghi nhận thanh toán để tạo giao dịch đầu tiên cho hoá đơn."
+                     })" />
+        }
+        else
+        {
+            <div class="table-shell">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Ngày</th>
+                            <th scope="col">Loại</th>
+                            <th scope="col">Phương thức</th>
+                            <th scope="col" class="col-num">Số tiền</th>
+                            <th scope="col">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Detail.Transactions)
+                        {
+                            <tr>
+                                <td class="col-num">@item.PaymentDate.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @if (item.Type == TransactionType.Income)
+                                    {
+                                        <span class="badge badge--ok">Thu</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge--danger">Chi</span>
+                                    }
+                                </td>
+                                <td>@item.Method</td>
+                                <td class="col-num">@item.PaidAmount.ToString("N0")</td>
+                                <td class="muted">@item.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Ghi nhận thanh toán</h2>
+                <p class="section__sub">Số tiền không vượt quá phần còn lại.</p>
+            </div>
+        </div>
+
+        <div class="section__body">
+            @if (Model.Detail.Remaining == 0)
+            {
+                <div class="alert alert-success mb-0" role="status">Hoá đơn đã thu đủ.</div>
+            }
+            else if (!canPay)
+            {
+                <p class="muted mb-0">Bạn không có quyền ghi nhận thanh toán.</p>
+            }
+            else
+            {
+                <form asp-action="MarkPaid" asp-route-id="@invoice.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="form-grid">
+                        <div class="form-field form-field--full">
+                            <label class="form-label" for="amount">Số tiền (tối đa @Model.Detail.Remaining.ToString("N0"))</label>
+                            <input class="form-control" id="amount" name="amount" type="number" min="1" step="1000"
+                                   max="@Model.Detail.Remaining" value="@Model.Detail.Remaining" required />
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label" for="paymentDate">Ngày thanh toán</label>
+                            <input class="form-control" id="paymentDate" name="paymentDate" type="date"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label" for="method">Phương thức</label>
+                            <select class="form-select" id="method" name="method">
+                                <option value="Cash">Tiền mặt</option>
+                                <option value="Sepay">SePay</option>
+                                <option value="PayOS">PayOS</option>
+                                <option value="Paykit">Paykit</option>
+                            </select>
+                        </div>
+                        <div class="form-field form-field--full">
+                            <label class="form-label" for="note">Ghi chú</label>
+                            <input class="form-control" id="note" name="note" maxlength="500" />
+                        </div>
+                    </div>
+
+                    <div style="margin-top:14px">
+                        <button type="submit" class="btn btn-primary w-100">Ghi nhận</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </section>
+</div>

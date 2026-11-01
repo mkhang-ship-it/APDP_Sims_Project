@@ -1,0 +1,131 @@
+@model SIMS.Web.Models.HomeViewModel
+@{
+    ViewData["Title"] = Model.SiteTitle;
+}
+
+<section class="public-hero">
+    <span class="eyebrow">Câu lạc bộ sinh viên</span>
+    <h1 class="public-hero__title">@Model.SiteTitle</h1>
+    <p class="public-hero__lead">@Model.SiteDescription</p>
+    <div class="public-hero__actions">
+        <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+        @if (Model.PublicDraws.Count > 0)
+        {
+            <a class="btn btn-outline-secondary" href="#lucky-draws">Chương trình bốc thăm</a>
+        }
+    </div>
+</section>
+
+<div class="grid-2" style="margin-bottom:16px">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Hoạt động sắp tới</h2>
+                <p class="section__sub">Sự kiện công khai của các câu lạc bộ.</p>
+            </div>
+            <span class="badge badge--neutral">@Model.PublicEvents.Count</span>
+        </div>
+
+        @if (Model.PublicEvents.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyStateModel
+                     {
+                         Title = "Chưa có sự kiện công khai",
+                         Text = "Sự kiện đã công bố sẽ xuất hiện tại đây."
+                     })" />
+        }
+        else
+        {
+            <div class="table-shell">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Sự kiện</th>
+                            <th scope="col">CLB</th>
+                            <th scope="col">Thời gian</th>
+                            <th scope="col">Địa điểm</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.PublicEvents)
+                        {
+                            <tr>
+                                <td class="fw-medium">@item.Title</td>
+                                <td class="muted">@item.ClubName</td>
+                                <td class="col-num">@item.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="muted">@item.Location</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Câu lạc bộ</h2>
+                <p class="section__sub">Các câu lạc bộ đang hoạt động.</p>
+            </div>
+            <span class="badge badge--neutral">@Model.PublicClubs.Count</span>
+        </div>
+
+        <div class="section__body">
+            @if (Model.PublicClubs.Count == 0)
+            {
+                <p class="muted mb-0">Chưa có CLB đang hoạt động.</p>
+            }
+            else
+            {
+                <ul class="list">
+                    @foreach (var club in Model.PublicClubs)
+                    {
+                        <li class="list__item">
+                            <span class="list__main">
+                                <span class="list__title">@club.Name</span>
+                                <span class="list__meta">@club.Code</span>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+</div>
+
+<section class="section" id="lucky-draws">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Bốc thăm may mắn</h2>
+            <p class="section__sub">Kết quả do ban tổ chức câu lạc bộ công bố.</p>
+        </div>
+    </div>
+
+    @if (Model.PublicDraws.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Hiện không có chương trình nào đang mở",
+                     Text = "Chương trình bốc thăm công khai sẽ xuất hiện tại đây."
+                 })" />
+    }
+    else
+    {
+        <div class="draw-grid">
+            @foreach (var draw in Model.PublicDraws)
+            {
+                <article class="draw-card">
+                    <div class="draw-card__top">
+                        <h3 class="draw-card__title">@draw.Title</h3>
+                        <span class="badge badge--accent">@draw.ClubName</span>
+                    </div>
+                    <p class="draw-card__meta">
+                        Kết thúc: @draw.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </p>
+                    <a class="btn btn-sm btn-outline-secondary" href="/lucky/@draw.Slug">Xem kết quả</a>
+                </article>
+            }
+        </div>
+    }
+</section>

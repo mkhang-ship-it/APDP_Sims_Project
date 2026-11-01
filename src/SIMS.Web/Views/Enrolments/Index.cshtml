@@ -1,0 +1,127 @@
+@model SIMS.Web.Models.EnrolmentIndexViewModel
+@{
+    ViewData["Title"] = "Đăng ký học phần";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ</span>
+        <h1>Đăng ký học phần</h1>
+        <p class="page-head__sub">Theo dõi đăng ký, nhập điểm và huỷ đăng ký của sinh viên.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-primary btn-sm" asp-action="Enrol">+ Đăng ký mới</a>
+    </div>
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Tổng đăng ký</div>
+        <div class="stat__value">@Model.Rows.Count</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đang học</div>
+        <div class="stat__value">@Model.ActiveCount</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã có điểm</div>
+        <div class="stat__value">@Model.GradedCount</div>
+    </div>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có đăng ký nào",
+                     Text = "Đăng ký học phần đầu tiên cho sinh viên để bắt đầu nhập điểm.",
+                     ActionText = "+ Đăng ký mới",
+                     ActionUrl = Url.Action("Enrol")
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo MSSV, sinh viên, học phần…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>MSSV</th>
+                        <th scope="col" data-sort>Sinh viên</th>
+                        <th scope="col" data-sort>Học phần</th>
+                        <th scope="col" data-sort>Trạng thái</th>
+                        <th scope="col" data-sort>Điểm</th>
+                        <th scope="col" class="col-actions">Nhập điểm / Huỷ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        var enrolment = row.Enrolment;
+                        <tr>
+                            <td><code>@(row.Student?.StudentCode ?? "?")</code></td>
+                            <td class="fw-medium">@(row.Student?.FullName ?? "(không tìm thấy)")</td>
+                            <td>
+                                <code>@(row.Course?.Code ?? "?")</code>
+                                <span class="muted">— @(row.Course?.Title ?? "(không tìm thấy)")</span>
+                            </td>
+                            <td>
+                                @switch (enrolment.Status)
+                                {
+                                    case SIMS.Domain.Enrolments.EnrolmentStatus.Active:
+                                        <span class="badge badge--ok badge--dot">Đang học</span>
+                                        break;
+                                    case SIMS.Domain.Enrolments.EnrolmentStatus.Completed:
+                                        <span class="badge badge--accent badge--dot">Hoàn thành</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge--neutral badge--dot">Đã huỷ</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (enrolment.HasGrade)
+                                {
+                                    <span class="fw-semibold tnum">@enrolment.Score</span>
+                                    <span class="badge badge--neutral ms-1">@enrolment.GradeLetter</span>
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                            <td class="col-actions">
+                                <form asp-action="Grade" method="post" class="d-inline-flex gap-1 align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="enrolmentId" value="@enrolment.Id" />
+                                    <input type="number" name="score" class="form-control form-control-sm" style="width: 80px"
+                                           min="0" max="10" step="0.01" inputmode="decimal" required
+                                           aria-label="Điểm cho @row.Student?.StudentCode" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Lưu điểm</button>
+                                </form>
+
+                                @if (enrolment.IsActive)
+                                {
+                                    <form asp-action="Drop" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="enrolmentId" value="@enrolment.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Huỷ</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

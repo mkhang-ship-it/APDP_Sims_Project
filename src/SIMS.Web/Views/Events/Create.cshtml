@@ -1,0 +1,36 @@
+@model SIMS.Web.Models.EventFormModel
+@{
+    ViewData["Title"] = "Tạo sự kiện";
+    ViewData["IsEdit"] = false;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Câu lạc bộ / Sự kiện</span>
+        <h1>Tạo sự kiện</h1>
+        <p class="page-head__sub">Sự kiện mới được lưu ở trạng thái nháp; công bố sau khi kiểm tra thông tin.</p>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin sự kiện</h2>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <partial name="_Form" model="Model" />
+        </div>
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Lưu (nháp)</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

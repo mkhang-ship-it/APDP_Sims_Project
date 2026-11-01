@@ -1,0 +1,82 @@
+@model SIMS.Web.Models.MyPointsPageModel
+@using SIMS.Domain.Disciplines
+@{
+    ViewData["Title"] = "Điểm rèn luyện của tôi";
+    var points = Model.Points;
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Điểm rèn luyện của tôi</h1>
+        <p class="page-head__sub">@Model.ClubName</p>
+    </div>
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Điểm CLB</div>
+        <div class="stat__value">@points.ClubPoints.ToString("0.##")</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Điểm trường</div>
+        <div class="stat__value" style="color:var(--ok)">@points.SchoolPoints.ToString("0.##")</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Xếp hạng CLB</div>
+        <div class="stat__value">@(points.Rank?.ToString() ?? "—")</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Cán bộ CLB</div>
+        <div class="stat__value">@(points.IsLeader ? "Có" : "Không")</div>
+    </div>
+</div>
+
+<section class="section">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Lịch sử điểm</h2>
+            <p class="section__sub">@points.Records.Count bản ghi</p>
+        </div>
+    </div>
+
+    @if (points.Records.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Chưa có bản ghi điểm",
+                     Text = "Điểm rèn luyện sẽ xuất hiện sau khi cán bộ CLB ghi nhận."
+                 })" />
+    }
+    else
+    {
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Danh mục</th>
+                        <th scope="col" class="col-num">Điểm</th>
+                        <th scope="col">Ngày</th>
+                        <th scope="col">Kỳ</th>
+                        <th scope="col">Ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in points.Records)
+                    {
+                        var value = item.Discipline?.Points ?? 0m;
+                        <tr>
+                            <td class="fw-medium">@(item.Discipline?.Name ?? "?")</td>
+                            <td class="col-num @(value < 0 ? "text-danger" : "text-success")">
+                                @(value > 0 ? "+" : string.Empty)@value.ToString("0.#")
+                            </td>
+                            <td class="tnum">@item.Record.AppliedDate.ToString("dd/MM/yyyy")</td>
+                            <td>@item.Record.Period</td>
+                            <td class="muted">@item.Record.Notes</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

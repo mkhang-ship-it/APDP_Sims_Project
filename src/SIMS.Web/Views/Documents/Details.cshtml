@@ -1,0 +1,208 @@
+@model SIMS.Web.Models.DocumentDetailsPageModel
+@using SIMS.Domain.Documents
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Chi tiết văn bản";
+    var document = Model.Document;
+    var canApprove = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:documents:approve")).Succeeded;
+    var canEdit = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:documents:edit")).Succeeded;
+    var canDelete = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:documents:delete")).Succeeded;
+    var granted = Model.Access.Select(access => access.UserId).ToHashSet();
+
+    string StatusLabel(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Approved => "Đã duyệt",
+        DocumentStatus.Rejected => "Từ chối",
+        _ => "Chờ duyệt",
+    };
+
+    string StatusBadge(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Approved => "badge--ok",
+        DocumentStatus.Rejected => "badge--danger",
+        _ => "badge--warn",
+    };
+
+    string VisibilityLabel(DocumentVisibility visibility) => visibility switch
+    {
+        DocumentVisibility.Public => "Công khai",
+        DocumentVisibility.Restricted => "Giới hạn",
+        _ => "Riêng tư",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng / Văn bản</span>
+        <h1>@document.Title</h1>
+        <p class="page-head__sub">
+            @(Model.Type?.Code) · @(Model.Type?.Name) · tải bởi @document.UploadedBy
+        </p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-primary btn-sm" asp-action="Download" asp-route-id="@document.Id">Tải xuống</a>
+        @if (canDelete)
+        {
+            <form asp-action="Delete" asp-route-id="@document.Id" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">Xoá</button>
+            </form>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Danh sách</a>
+    </div>
+</header>
+
+<div class="grid-2">
+    <section class="section">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Thông tin văn bản</h2>
+            </div>
+            <span class="badge @StatusBadge(document.Status) badge--dot">@StatusLabel(document.Status)</span>
+        </div>
+        <div class="section__body">
+            <dl class="detail-list">
+                <div>
+                    <dt>Trạng thái</dt>
+                    <dd>@StatusLabel(document.Status)</dd>
+                </div>
+                <div>
+                    <dt>Hiển thị</dt>
+                    <dd>@VisibilityLabel(document.Visibility)</dd>
+                </div>
+                <div>
+                    <dt>Người duyệt</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(document.ReviewedBy) ? "—" : document.ReviewedBy)</dd>
+                </div>
+                <div>
+                    <dt>Ngày tải</dt>
+                    <dd>@document.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(document.ReasonRejected))
+                {
+                    <div class="detail-list__full">
+                        <dt>Lý do từ chối</dt>
+                        <dd class="text-danger">@document.ReasonRejected</dd>
+                    </div>
+                }
+            </dl>
+        </div>
+
+        @if (canApprove && document.Status != DocumentStatus.Approved)
+        {
+            <div class="section__foot">
+                <span>Phê duyệt văn bản</span>
+                <form asp-action="Review" asp-route-id="@document.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="approve" value="true" />
+                    <button type="submit" class="btn btn-sm btn-primary">Duyệt</button>
+                </form>
+            </div>
+        }
+        @if (canApprove && document.Status != DocumentStatus.Rejected)
+        {
+            <form asp-action="Review" asp-route-id="@document.Id" method="post" class="section__foot"
+                  style="align-items:flex-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="approve" value="false" />
+                <div class="form-field" style="flex:1 1 220px">
+                    <label class="form-label" for="reason">Lý do từ chối</label>
+                    <input class="form-control form-control-sm" id="reason" name="reason"
+                           placeholder="Lý do từ chối" required />
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline-danger">Từ chối</button>
+            </form>
+        }
+    </section>
+
+    <div>
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Chế độ hiển thị</h2>
+                    <p class="section__sub">Công khai, giới hạn theo người xem hoặc riêng tư.</p>
+                </div>
+            </div>
+            <div class="section__body">
+                @if (canEdit)
+                {
+                    <form asp-action="Visibility" asp-route-id="@document.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="form-grid form-grid--3">
+                            <div class="form-field" style="grid-column:span 2">
+                                <select class="form-select" name="visibility" aria-label="Chế độ hiển thị">
+                                    @foreach (var value in Enum.GetValues<DocumentVisibility>())
+                                    {
+                                        if (value == document.Visibility)
+                                        {
+                                            <option value="@value" selected>@VisibilityLabel(value)</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@value">@VisibilityLabel(value)</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <button type="submit" class="btn btn-outline-secondary w-100">Lưu</button>
+                            </div>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <p class="mb-0">@VisibilityLabel(document.Visibility)</p>
+                }
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <div class="section__titles">
+                    <h2 class="section__title">Người được xem</h2>
+                    <p class="section__sub">Áp dụng cho chế độ Giới hạn.</p>
+                </div>
+            </div>
+
+            @if (canEdit)
+            {
+                <form asp-action="Access" asp-route-id="@document.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="section__body">
+                        @if (Model.Members.Count == 0)
+                        {
+                            <p class="muted mb-0">CLB chưa có thành viên.</p>
+                        }
+                        else
+                        {
+                            <div class="check-grid">
+                                @foreach (var member in Model.Members)
+                                {
+                                    <label class="check-card" for="access-@member.Id">
+                                        <input class="form-check-input" type="checkbox" name="userIds"
+                                               value="@member.Id" id="access-@member.Id"
+                                               @(granted.Contains(member.Id) ? "checked" : null) />
+                                        <span>
+                                            <span class="check-card__title">@member.DisplayName</span>
+                                            <span class="check-card__meta">@member.Username</span>
+                                        </span>
+                                    </label>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Lưu danh sách</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="section__body">
+                    <p class="muted mb-0">@Model.Access.Count người được xem.</p>
+                </div>
+            }
+        </section>
+    </div>
+</div>

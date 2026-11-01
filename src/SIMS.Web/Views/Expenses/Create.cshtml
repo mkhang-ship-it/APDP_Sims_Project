@@ -1,0 +1,91 @@
+@model SIMS.Web.Models.ExpenseCreatePageModel
+@{
+    ViewData["Title"] = "Tạo chi phí";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính / Chi phí</span>
+        <h1>Tạo chi phí</h1>
+        <p class="page-head__sub">Khoản chi mới được lưu ở trạng thái chờ duyệt.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Quay lại</a>
+    </div>
+</header>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">Thông tin khoản chi</h2>
+            <p class="section__sub">Số tiền và kỳ chi được kiểm tra lại ở máy chủ khi lưu.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="section__body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-grid">
+                @if (Model.IsAdmin)
+                {
+                    <div class="form-field">
+                        <label class="form-label" for="ClubId">Câu lạc bộ <span class="required-mark" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="ClubId" name="ClubId" required>
+                            @foreach (var club in Model.Clubs)
+                            {
+                                if (club.Id == Model.Form.ClubId)
+                                {
+                                    <option value="@club.Id" selected>@club.Code — @club.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@club.Id">@club.Code — @club.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" name="ClubId" value="@Model.Form.ClubId" />
+                }
+
+                <div class="form-field">
+                    <label class="form-label" for="Title">Tên chi phí <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Title" name="Title" value="@Model.Form.Title" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Title")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Amount">Số tiền (đ) <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="Amount" name="Amount" type="number" min="0" step="1000"
+                           value="@Model.Form.Amount" required />
+                    <span class="text-danger small">@Html.ValidationMessage("Amount")</span>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="Period">Kỳ</label>
+                    <input class="form-control" id="Period" name="Period" value="@Model.Form.Period" placeholder="HK1 2026-2027" />
+                    <span class="text-danger small">@Html.ValidationMessage("Period")</span>
+                </div>
+
+                <div class="form-field form-field--full">
+                    <label class="form-label" for="Description">Mô tả</label>
+                    <textarea class="form-control" id="Description" name="Description" rows="3">@Model.Form.Description</textarea>
+                    <span class="text-danger small">@Html.ValidationMessage("Description")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-primary">Tạo chi phí</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

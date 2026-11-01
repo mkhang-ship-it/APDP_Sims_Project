@@ -1,0 +1,165 @@
+@model SIMS.Web.Models.MyExpensesPageModel
+@using SIMS.Domain.Finance
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Chi phí của tôi";
+    var canCreate = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:my_create")).Succeeded;
+    var canEdit = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:my_edit")).Succeeded;
+    var canDelete = (await AuthorizationService.AuthorizeAsync(User, Context, "perm:expenses:my_delete")).Succeeded;
+
+    string Label(ExpenseStatus status) => status switch
+    {
+        ExpenseStatus.Pending => "Chờ duyệt",
+        ExpenseStatus.Approved => "Đã duyệt",
+        ExpenseStatus.Rejected => "Từ chối",
+        _ => "Đã chi",
+    };
+
+    string BadgeClass(ExpenseStatus status) => status switch
+    {
+        ExpenseStatus.Pending => "badge--warn",
+        ExpenseStatus.Approved => "badge--ok",
+        ExpenseStatus.Rejected => "badge--danger",
+        _ => "badge--accent",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Tài chính</span>
+        <h1>Chi phí của tôi</h1>
+        <p class="page-head__sub">Gửi yêu cầu chi và theo dõi trạng thái duyệt.</p>
+    </div>
+</header>
+
+<div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat">
+        <div class="stat__label">Số yêu cầu</div>
+        <div class="stat__value">@Model.Summary.Total</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Chờ duyệt</div>
+        <div class="stat__value" style="color:var(--warn)">@Model.Summary.Pending</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã duyệt</div>
+        <div class="stat__value" style="color:var(--ok)">@Model.Summary.Approved</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Đã chi</div>
+        <div class="stat__value">@Model.Summary.Paid</div>
+    </div>
+</div>
+
+@if (canCreate)
+{
+    <section class="section" style="margin-bottom:16px">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Gửi yêu cầu chi mới</h2>
+                <p class="section__sub">Yêu cầu sẽ chờ cán bộ CLB duyệt trước khi chi.</p>
+            </div>
+        </div>
+        <form asp-action="MyCreate" method="post">
+            @Html.AntiForgeryToken()
+            <div class="section__body">
+                <div class="form-grid form-grid--3">
+                    <div class="form-field">
+                        <label class="form-label" for="my-title">Tên khoản chi <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="my-title" name="Title" placeholder="VD: In ấn tài liệu" required />
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="my-amount">Số tiền (đ) <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="my-amount" name="Amount" type="number" min="0" step="1000"
+                               placeholder="VD: 250000" required />
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="my-period">Kỳ</label>
+                        <input class="form-control" id="my-period" name="Period" placeholder="HK1 2026-2027" />
+                    </div>
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="my-description">Mô tả</label>
+                        <input class="form-control" id="my-description" name="Description" placeholder="Mô tả ngắn" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+            </div>
+        </form>
+    </section>
+}
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Bạn chưa gửi yêu cầu chi nào",
+                     Text = canCreate
+                         ? "Dùng biểu mẫu phía trên để gửi yêu cầu chi đầu tiên."
+                         : "Yêu cầu chi đã gửi sẽ xuất hiện tại đây."
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo tên, CLB, kỳ…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Tên</th>
+                        <th scope="col" data-sort>CLB</th>
+                        <th scope="col" class="col-num" data-sort>Số tiền</th>
+                        <th scope="col" data-sort>Kỳ</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var expense = item.Expense;
+                        <tr>
+                            <td>
+                                <span class="fw-medium">@expense.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(expense.Description))
+                                {
+                                    <span class="muted small d-block">@expense.Description</span>
+                                }
+                            </td>
+                            <td>@item.ClubName</td>
+                            <td class="col-num">@expense.Amount.ToString("N0")</td>
+                            <td>@expense.Period</td>
+                            <td>
+                                <span class="badge @BadgeClass(expense.Status) badge--dot">@Label(expense.Status)</span>
+                            </td>
+                            <td class="col-actions">
+                                @if (canEdit && expense.IsEditable)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" asp-action="MyEdit"
+                                       asp-route-id="@expense.Id">Sửa</a>
+                                }
+                                @if (canDelete && expense.IsEditable)
+                                {
+                                    <form asp-action="MyDelete" asp-route-id="@expense.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xoá</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

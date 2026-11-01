@@ -1,0 +1,53 @@
+@model SIMS.Domain.Courses.Course
+@{
+    ViewData["Title"] = "Xoá học phần";
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Học vụ / Học phần</span>
+        <h1>Xoá học phần</h1>
+        <p class="page-head__sub">Thao tác không thể hoàn tác.</p>
+    </div>
+</header>
+
+<div class="alert alert-warning" role="alert">
+    <p class="alert__title">Xác nhận xoá học phần</p>
+    Học phần sẽ bị xoá khỏi hệ thống. Đăng ký đang hoạt động có thể bị ảnh hưởng.
+</div>
+
+<section class="section form-panel">
+    <div class="section__head">
+        <div class="section__titles">
+            <h2 class="section__title">@Model.Title</h2>
+            <p class="section__sub"><code>@Model.Code</code></p>
+        </div>
+    </div>
+    <div class="section__body">
+        <dl class="detail-list">
+            <div>
+                <dt>Mã</dt>
+                <dd><code>@Model.Code</code></dd>
+            </div>
+            <div>
+                <dt>Tên</dt>
+                <dd>@Model.Title</dd>
+            </div>
+            <div>
+                <dt>Sức chứa</dt>
+                <dd class="tnum">@Model.Capacity</dd>
+            </div>
+            <div>
+                <dt>Trạng thái</dt>
+                <dd>@(Model.Status == SIMS.Domain.Courses.CourseStatus.Active ? "Đang mở" : "Đã đóng")</dd>
+            </div>
+        </dl>
+    </div>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" asp-action="Index">Huỷ</a>
+            <button type="submit" class="btn btn-danger">Xoá vĩnh viễn</button>
+        </div>
+    </form>
+</section>

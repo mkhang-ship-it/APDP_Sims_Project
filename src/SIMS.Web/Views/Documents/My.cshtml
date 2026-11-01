@@ -1,0 +1,128 @@
+@model SIMS.Web.Models.MyDocumentsPageModel
+@using SIMS.Domain.Documents
+@{
+    ViewData["Title"] = "Văn bản của tôi";
+
+    string StatusLabel(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Approved => "Đã duyệt",
+        DocumentStatus.Rejected => "Từ chối",
+        _ => "Chờ duyệt",
+    };
+
+    string StatusBadge(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Approved => "badge--ok",
+        DocumentStatus.Rejected => "badge--danger",
+        _ => "badge--warn",
+    };
+}
+
+<header class="page-head">
+    <div class="page-head__text">
+        <span class="eyebrow">Văn bản &amp; khen thưởng</span>
+        <h1>Văn bản của tôi</h1>
+        <p class="page-head__sub">@Model.Items.Count văn bản đã tải lên.</p>
+    </div>
+    <div class="page-head__actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-action="MyRequests">Yêu cầu nộp</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Accessible">Văn bản được xem</a>
+    </div>
+</header>
+
+@if (Model.Types.Count > 0)
+{
+    <section class="section" style="margin-bottom:16px">
+        <div class="section__head">
+            <div class="section__titles">
+                <h2 class="section__title">Tải văn bản mới</h2>
+                <p class="section__sub">Văn bản sẽ chờ duyệt trước khi hiển thị theo chế độ đã chọn.</p>
+            </div>
+        </div>
+        <form asp-action="MyUpload" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClubId" value="@Model.Form.ClubId" />
+            <div class="section__body">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label class="form-label" for="my-type">Loại văn bản <span class="required-mark" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="my-type" name="DocumentTypeId" required>
+                            @foreach (var type in Model.Types)
+                            {
+                                <option value="@type.Id">@type.Code — @type.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="my-title">Tiêu đề <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="my-title" name="Title" placeholder="Tiêu đề" required maxlength="255" />
+                    </div>
+                    <div class="form-field form-field--full">
+                        <label class="form-label" for="my-file">Tệp <span class="required-mark" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="my-file" name="File" type="file" required />
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Gửi văn bản</button>
+            </div>
+        </form>
+    </section>
+}
+
+@if (Model.Items.Count == 0)
+{
+    <div class="section">
+        <partial name="_EmptyState" model="@(new EmptyStateModel
+                 {
+                     Title = "Bạn chưa tải văn bản nào",
+                     Text = Model.Types.Count > 0
+                         ? "Dùng biểu mẫu phía trên để tải văn bản đầu tiên."
+                         : "Văn bản đã tải sẽ xuất hiện tại đây."
+                 })" />
+    </div>
+}
+else
+{
+    <section class="section" data-table data-page-size="10">
+        <partial name="_TableToolbar" model="@(new TableToolbarModel
+                 {
+                     Placeholder = "Tìm theo tiêu đề, loại…"
+                 })" />
+
+        <div class="table-shell">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort>Tiêu đề</th>
+                        <th scope="col" data-sort>Loại</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col" data-sort>Ngày tải</th>
+                        <th scope="col" class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-medium">@item.Document.Title</td>
+                            <td>@(item.Type?.Name ?? "—")</td>
+                            <td>
+                                <span class="badge @StatusBadge(item.Document.Status) badge--dot">@StatusLabel(item.Document.Status)</span>
+                            </td>
+                            <td class="col-num" data-value="@item.Document.CreatedAtUtc.ToString("yyyy-MM-ddTHH:mm")">
+                                @item.Document.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td class="col-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Download"
+                                   asp-route-id="@item.Document.Id">Tải</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_TableFoot" />
+    </section>
+}

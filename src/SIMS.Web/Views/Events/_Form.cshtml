@@ -1,0 +1,78 @@
+@model SIMS.Web.Models.EventFormModel
+@{
+    var isEdit = ViewData["IsEdit"] as bool? ?? false;
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="form-grid">
+    <div class="form-field">
+        <label asp-for="Code" class="form-label">Mã sự kiện <span class="required-mark" aria-hidden="true">*</span></label>
+        @if (isEdit)
+        {
+            <input asp-for="Code" class="form-control" readonly />
+        }
+        else
+        {
+            <input asp-for="Code" class="form-control" autocomplete="off" placeholder="VD: EVT2026" required />
+        }
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="Capacity" class="form-label">Sức chứa <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="Capacity" class="form-control" type="number" min="1" max="1000" required />
+        <span asp-validation-for="Capacity" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field form-field--full">
+        <label asp-for="Title" class="form-label">Tên sự kiện <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="Title" class="form-control" required />
+        <span asp-validation-for="Title" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="StartsAt" class="form-label">Bắt đầu <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="StartsAt" class="form-control" type="datetime-local" required />
+        <span asp-validation-for="StartsAt" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="EndsAt" class="form-label">Kết thúc <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="EndsAt" class="form-control" type="datetime-local" required />
+        <span asp-validation-for="EndsAt" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field form-field--full">
+        <label asp-for="Location" class="form-label">Địa điểm <span class="required-mark" aria-hidden="true">*</span></label>
+        <input asp-for="Location" class="form-control" placeholder="VD: Hội trường A" required />
+        <span asp-validation-for="Location" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="VenueLatitude" class="form-label">Vĩ độ</label>
+        <input asp-for="VenueLatitude" class="form-control" type="number" step="any" min="-90" max="90"
+               placeholder="10.7769" />
+        <span asp-validation-for="VenueLatitude" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="VenueLongitude" class="form-label">Kinh độ</label>
+        <input asp-for="VenueLongitude" class="form-control" type="number" step="any" min="-180" max="180"
+               placeholder="106.7009" />
+        <span asp-validation-for="VenueLongitude" class="text-danger small"></span>
+    </div>
+
+    <div class="form-field form-field--full">
+        <div class="form-text">
+            Điền toạ độ để bật geofence check-in (bán kính 5 km). Để trống cả hai nếu không cần kiểm tra vị trí.
+        </div>
+    </div>
+
+    <div class="form-field form-field--full">
+        <label asp-for="Description" class="form-label">Mô tả</label>
+        <textarea asp-for="Description" class="form-control" rows="4"
+                  placeholder="Nội dung, đối tượng tham gia, lưu ý…"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+</div>
